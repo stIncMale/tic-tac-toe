@@ -1,0 +1,14 @@
+[package]
+name = "tic-tac-toe"
+version = "0.0.0"
+edition = "2018"
+authors = ["Valentin Kovalenko <https://www.kovalenko.link>"]
+description = "A client-server game"
+license = "WTFPL <http://www.wtfpl.net>"
+repository = "https://github.com/stIncMale/tic-tac-toe"
+readme = "readme.md"
+keywords = ["learning"]
+categories = ["games", "command-line-utilities"]
+
+[dependencies]
+rand = "0.8.3"
