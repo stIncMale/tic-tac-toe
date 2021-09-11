@@ -16,10 +16,6 @@ ij_smart_tabs = false
 ij_visual_guides = 100
 ij_wrap_on_typing = true
 
-[*.rs]
-indent_size = 4
-tab_width = 4
-
 [*.java]
 indent_size = 4
 tab_width = 4
@@ -262,6 +258,30 @@ ij_properties_keep_blank_lines = true
 ij_properties_key_value_delimiter = equals
 ij_properties_spaces_around_key_value_delimiter = true
 
+[*.rs]
+indent_size = 4
+tab_width = 4
+ij_visual_guides = none
+ij_rust_align_multiline_chained_methods = false
+ij_rust_align_multiline_parameters = true
+ij_rust_align_multiline_parameters_in_calls = true
+ij_rust_align_ret_type = true
+ij_rust_align_type_params = false
+ij_rust_align_where_bounds = true
+ij_rust_align_where_clause = false
+ij_rust_allow_one_line_match = false
+ij_rust_block_comment_at_first_column = false
+ij_rust_indent_where_clause = true
+ij_rust_keep_blank_lines_in_code = 2
+ij_rust_keep_blank_lines_in_declarations = 2
+ij_rust_keep_indents_on_empty_lines = false
+ij_rust_keep_line_breaks = true
+ij_rust_line_comment_add_space = true
+ij_rust_line_comment_at_first_column = false
+ij_rust_min_number_of_blanks_between_items = 1
+ij_rust_preserve_punctuation = false
+ij_rust_spaces_around_assoc_type_binding = false
+
 [.editorconfig]
 ij_editorconfig_align_group_field_declarations = false
 ij_editorconfig_space_after_colon = false
@@ -479,6 +499,7 @@ ij_groovy_use_single_class_imports = true
 ij_groovy_variable_annotation_wrap = split_into_lines
 ij_groovy_while_brace_force = always
 ij_groovy_while_on_new_line = false
+ij_groovy_wrap_chain_calls_after_dot = false
 ij_groovy_wrap_long_lines = true
 
 [{*.har,*.json}]

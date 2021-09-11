@@ -1,9 +1,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 
+use rand::Rng;
 use std::cmp::Ordering;
 use std::io;
-
-use rand::Rng;
 
 fn main() {
     println!("Guess the number!");
