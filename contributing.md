@@ -10,7 +10,7 @@ by installing [`rustup`](https://www.rust-lang.org/tools/install).
 ### Setup the Rust toolchain
 
 If you are using a shell capable of running
-[Bash](https://www.gnu.org/software/bash/manual/bash.html) scripts,
+[Bash](https://www.gnu.org/software/bash/) scripts,
 run the following from the project root directory:
 ```shell
 $ ./setup.sh
