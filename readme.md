@@ -1,15 +1,15 @@
 # tic-tac-toe
 
 <p align="right">
-  <a href="https://doc.rust-lang.org/1.55.0/">
-    <img src="https://img.shields.io/badge/Rust-1.55.0, edition 2018-orange.svg?labelColor=black"
+  <a href="https://doc.rust-lang.org/1.58.0/">
+    <img src="https://img.shields.io/badge/Rust-1.58.0, edition 2021-orange.svg?labelColor=black"
         alt="Rust requirement">
   </a>
 </p>
 
 ## About
 
-A tic-tac-toe client-server application intended to be interoperable with its
+A multiplayer turn-based game. The application is intended to be interoperable with its
 [Python](https://www.python.org/) counterpart
 [Yo1k/tic-tac-toe](https://github.com/Yo1k/tic-tac-toe).
 

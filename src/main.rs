@@ -1,30 +1,18 @@
-#![deny(clippy::all, clippy::pedantic)]
+#![deny(warnings, clippy::all, clippy::pedantic)]
+#![allow(dead_code)]
 
-use rand::Rng;
-use std::cmp::Ordering;
-use std::io;
+mod libs;
+
+use crate::libs::{run, Config};
+use std::{env, process};
 
 fn main() {
-    println!("Guess the number!");
-    let secret_number = rand::thread_rng().gen_range(1..=100);
-    loop {
-        println!("Please input your guess.");
-        let mut guess = String::new();
-        io::stdin()
-            .read_line(&mut guess)
-            .expect("Failed to read line");
-        let guess: u32 = match guess.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue,
-        };
-        println!("You guessed: {}", guess);
-        match guess.cmp(&secret_number) {
-            Ordering::Less => println!("Too small!"),
-            Ordering::Greater => println!("Too big!"),
-            Ordering::Equal => {
-                println!("You win!");
-                break;
-            }
-        }
+    let config = Config::new(env::args()).unwrap_or_else(|e| {
+        eprintln!("Problem parsing arguments: {}", e);
+        process::exit(1);
+    });
+    if let Err(e) = run(config) {
+        eprintln!("Application error: {}", e);
+        process::exit(1);
     }
 }

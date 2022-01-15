@@ -1,9 +1,9 @@
 [package]
 name = "tic-tac-toe"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 authors = ["Valentin Kovalenko <https://www.kovalenko.link>"]
-description = "A client-server game"
+description = "A multiplayer turn-based game"
 license = "WTFPL <http://www.wtfpl.net>"
 repository = "https://github.com/stIncMale/tic-tac-toe"
 readme = "readme.md"
