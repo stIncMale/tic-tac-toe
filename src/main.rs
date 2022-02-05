@@ -1,10 +1,7 @@
 #![deny(warnings, clippy::all, clippy::pedantic)]
-#![allow(dead_code)]
 
-mod libs;
-
-use crate::libs::{run, Config};
 use std::{env, process};
+use tic_tac_toe::{run, Config};
 
 fn main() {
     let config = Config::new(env::args()).unwrap_or_else(|e| {

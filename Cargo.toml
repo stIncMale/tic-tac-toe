@@ -2,6 +2,7 @@
 name = "tic-tac-toe"
 version = "0.0.0"
 edition = "2021"
+rust-version = "1.58.1"
 authors = ["Valentin Kovalenko <https://www.kovalenko.link>"]
 description = "A multiplayer turn-based game"
 license = "WTFPL <http://www.wtfpl.net>"

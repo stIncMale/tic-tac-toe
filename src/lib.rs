@@ -1,7 +1,11 @@
+#![deny(warnings, clippy::all, clippy::pedantic)]
+#![allow(dead_code, clippy::missing_errors_doc, clippy::unused_self)]
+
 use std::error::Error;
 use std::{env, fs};
 
-pub mod core;
+mod ai;
+mod core;
 mod tests;
 
 pub struct Config {
