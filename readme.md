@@ -13,8 +13,8 @@ A multiplayer turn-based game. The application is intended to be interoperable w
 [Python](https://www.python.org/) counterpart
 [Yo1k/tic-tac-toe](https://github.com/Yo1k/tic-tac-toe).
 
-The goals of this project is to both help my [brother](https://github.com/Yo1k)
-to learn programming, and learn [Rust](https://www.rust-lang.org/).
+The goals of this project are to learn [Rust](https://www.rust-lang.org/)
+and to help my [brother](https://github.com/Yo1k) with learning programming.
 
 ## [Contributor Guide](https://github.com/stIncMale/tic-tac-toe/blob/master/contributing.md)
 
