@@ -5,7 +5,7 @@
 ### Install the Rust toolchain
 
 Install the [Rust](https://www.rust-lang.org/) toolchain
-by installing [`rustup`](https://www.rust-lang.org/tools/install).
+by installing [Rustup](https://www.rust-lang.org/tools/install).
 
 ### Setup the Rust toolchain
 
@@ -19,8 +19,8 @@ $ ./setup.sh
 
 Otherwise follow these manual steps:
 
-1. Install [`rustfmt`](https://github.com/rust-lang/rustfmt).
-2. Install [`clippy`](https://github.com/rust-lang/rust-clippy).
+1. Install [Rustfmt](https://github.com/rust-lang/rustfmt).
+2. Install [Clippy](https://github.com/rust-lang/rust-clippy).
 
 ## Build-related commands
 
@@ -28,10 +28,10 @@ This project uses [Cargo](https://doc.rust-lang.org/cargo/index.html) for build 
 
 Run from the project root directory:
 
-| &#x23; | Command                                                              | Description                                                 |
-|--------|----------------------------------------------------------------------|-------------------------------------------------------------|
-| 0      | `{ cargo clippy ; cargo check ; cargo fmt --check ; } && cargo test` | Analyze and report errors, check style, run tests.          |
-| 0.1    | `cargo fmt`                                                          | Reformat the code using`rustfmt`.                           |
-| 0.2    | `cargo clean`                                                        | Delete the`target` directory.                               |
-| 1      | `cargo build`                                                        | Build the project into the`target` directory.               |
-| 2      | `cargo run`                                                          | Run the project executable, build the project if necessary. |
+| &#x23; | Command                                                                             | Description                                                 |
+|--------|-------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| 0      | `{ cargo clippy --all-targets --all-features ; cargo fmt --check ; } && cargo test` | Analyze and report errors, check style, run tests.          |
+| 0.1    | `cargo fmt`                                                                         | Reformat the code using`rustfmt`.                           |
+| 0.2    | `cargo clean`                                                                       | Delete the`target` directory.                               |
+| 1      | `cargo build`                                                                       | Build the project into the`target` directory.               |
+| 2      | `cargo run`                                                                         | Run the project executable, build the project if necessary. |
