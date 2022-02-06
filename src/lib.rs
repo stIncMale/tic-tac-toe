@@ -1,5 +1,5 @@
 #![deny(warnings, clippy::all, clippy::pedantic)]
-#![allow(dead_code, clippy::missing_errors_doc, clippy::unused_self)]
+#![allow(dead_code, clippy::missing_errors_doc, clippy::similar_names)]
 
 use std::error::Error;
 use std::{env, fs};

@@ -9,7 +9,7 @@ enum Mark {
     O,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 struct Player {
     id: PlayerId,
     mark: Mark,
@@ -112,6 +112,7 @@ impl State {
         for (idx, player) in players.iter().enumerate() {
             assert_eq!(player.id.idx, idx);
         }
+        let required_ready = players.iter().map(|p| p.id).collect::<HashSet<PlayerId>>();
         Self {
             board: Board::new(),
             players,
@@ -119,7 +120,7 @@ impl State {
             game_rounds,
             round: 0,
             step: 0,
-            required_ready: HashSet::new(),
+            required_ready,
         }
     }
 
@@ -130,9 +131,9 @@ impl State {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Action {
-    Surrender,
-    Occupy(Cell),
     Ready,
+    Occupy(Cell),
+    Surrender,
 }
 
 pub trait ActionQueue: Debug {
@@ -157,13 +158,14 @@ impl<'a> Logic<'a> {
     }
 
     fn advance_beginning_outround(&mut self, state: &mut State) {
-        for player in state.players {
-            if state.required_ready.contains(&player.id) {
-                if let Option::Some(action) = self.action_queues[player.id.idx].next() {
+        for i in 0..state.players.len() {
+            let player_id = state.players[i].id;
+            if state.required_ready.contains(&player_id) {
+                if let Option::Some(action) = self.action_queues[player_id.idx].next() {
                     if action == Action::Ready {
-                        Logic::ready(state, player.id);
+                        Logic::ready(state, player_id);
                     } else {
-                        panic!("{:?}, {:?}", player, action)
+                        panic!("{:?}, {:?}", player_id, action)
                     }
                 }
             };
@@ -237,6 +239,7 @@ impl<'a> Logic<'a> {
         let mut d1_match = 0;
         let mut d2_match = 0;
         let mark = board.get(last_occupied);
+        assert_ne!(mark, Option::None);
         let Cell { x, y } = *last_occupied;
         let size = board.size();
         for i in 0..size {

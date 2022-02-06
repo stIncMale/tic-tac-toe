@@ -1,4 +1,5 @@
 #![deny(warnings, clippy::all, clippy::pedantic)]
+#![allow(dead_code, clippy::missing_errors_doc, clippy::similar_names)]
 
 use std::{env, process};
 use tic_tac_toe::{run, Config};
