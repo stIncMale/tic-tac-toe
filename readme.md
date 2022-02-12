@@ -2,7 +2,7 @@
 
 <p align="right">
   <a href="https://doc.rust-lang.org/1.58.1/">
-    <img src="https://img.shields.io/badge/Rust-1.58.1, edition 2021-orange.svg?labelColor=black"
+    <img src="https://img.shields.io/badge/Rust-1.58.1, edition 2021-f74c00.svg?labelColor=black"
         alt="Rust requirement">
   </a>
 </p>
