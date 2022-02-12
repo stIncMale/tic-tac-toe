@@ -1,20 +1,22 @@
-use crate::core::game as g;
+use crate::kernel::game as g;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 mod tests;
 
 #[derive(Debug)]
-pub struct Random<'a> {
-    state: &'a g::State,
+pub struct Random {
+    state: Rc<RefCell<g::State>>,
 }
 
-impl<'a> Random<'a> {
-    pub fn new(state: &'a g::State) -> Random<'a> {
+impl Random {
+    pub fn new(state: Rc<RefCell<g::State>>) -> Random {
         Self { state }
     }
 }
 
-impl g::ActionQueue for Random<'_> {
-    fn next(&mut self) -> Option<g::Action> {
+impl g::ActionQueue for Random {
+    fn pop(&self) -> Option<g::Action> {
         todo!()
     }
 }

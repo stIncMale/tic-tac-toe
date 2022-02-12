@@ -11,8 +11,18 @@ readme = "readme.md"
 keywords = ["learning"]
 categories = ["games", "command-line-utilities"]
 
+[lib]
+name = "tic_tac_toe"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tic-tac-toe"
+path = "src/main.rs"
+
+
 [dependencies]
-rand = "0.8.3"
+tui = "0.17"
+crossterm = "0.23"
 
 [dev-dependencies]
 pretty_assertions_sorted = "1.1.2"

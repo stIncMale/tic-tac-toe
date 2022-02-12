@@ -1,34 +1,36 @@
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fmt::Debug;
+use std::rc::Rc;
 
 mod tests;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum Mark {
+pub enum Mark {
     X,
     O,
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct Player {
+pub struct Player {
     id: PlayerId,
     mark: Mark,
     wins: u32,
 }
 
 impl Player {
-    fn new(id: PlayerId, mark: Mark) -> Self {
+    pub fn new(id: PlayerId, mark: Mark) -> Self {
         Self { id, mark, wins: 0 }
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-struct PlayerId {
+pub struct PlayerId {
     idx: usize,
 }
 
 impl PlayerId {
-    fn new(idx: usize) -> Self {
+    pub fn new(idx: usize) -> Self {
         Self { idx }
     }
 }
@@ -53,7 +55,7 @@ pub struct Cell {
 }
 
 impl Cell {
-    fn new(x: usize, y: usize) -> Self {
+    pub fn new(x: usize, y: usize) -> Self {
         assert!(x < Board::SIZE, "{:?}, {:?}", x, Board::SIZE);
         assert!(y < Board::SIZE, "{:?}, {:?}", y, Board::SIZE);
         Self { x, y }
@@ -108,7 +110,7 @@ pub struct State {
 impl State {
     const PLAYER_COUNT: usize = 2;
 
-    fn new(players: [Player; State::PLAYER_COUNT], game_rounds: u32) -> Self {
+    pub fn new(players: [Player; State::PLAYER_COUNT], game_rounds: u32) -> Self {
         for (idx, player) in players.iter().enumerate() {
             assert_eq!(player.id.idx, idx);
         }
@@ -137,31 +139,31 @@ pub enum Action {
 }
 
 pub trait ActionQueue: Debug {
-    fn next(&mut self) -> Option<Action>;
+    fn pop(&self) -> Option<Action>;
 }
 
 #[derive(Debug)]
-struct Logic<'a> {
-    action_queues: [&'a mut dyn ActionQueue; State::PLAYER_COUNT],
+pub struct Logic<'a> {
+    action_queues: [&'a dyn ActionQueue; State::PLAYER_COUNT],
 }
 
 impl<'a> Logic<'a> {
-    fn new(action_queues: [&'a mut dyn ActionQueue; State::PLAYER_COUNT]) -> Self {
+    pub fn new(action_queues: [&'a dyn ActionQueue; State::PLAYER_COUNT]) -> Self {
         Self { action_queues }
     }
 
-    fn advance(&mut self, state: &mut State) {
+    fn advance(&self, state: &mut State) {
         match state.phase {
             Phase::Beginning | Phase::Outround => self.advance_beginning_outround(state),
             Phase::Inround => self.advance_inround(state),
         };
     }
 
-    fn advance_beginning_outround(&mut self, state: &mut State) {
+    fn advance_beginning_outround(&self, state: &mut State) {
         for i in 0..state.players.len() {
             let player_id = state.players[i].id;
             if state.required_ready.contains(&player_id) {
-                if let Option::Some(action) = self.action_queues[player_id.idx].next() {
+                if let Option::Some(action) = self.action_queues[player_id.idx].pop() {
                     if action == Action::Ready {
                         Logic::ready(state, player_id);
                     } else {
@@ -172,9 +174,9 @@ impl<'a> Logic<'a> {
         }
     }
 
-    fn advance_inround(&mut self, state: &mut State) {
+    fn advance_inround(&self, state: &mut State) {
         let player_id = state.turn();
-        if let Option::Some(action) = self.action_queues[player_id.idx].next() {
+        if let Option::Some(action) = self.action_queues[player_id.idx].pop() {
             match action {
                 Action::Surrender => Logic::surrender(state),
                 Action::Occupy(cell) => Logic::occupy(state, &cell),
@@ -274,13 +276,17 @@ impl<'a> Logic<'a> {
 }
 
 #[derive(Debug)]
-struct World<'a> {
-    state: &'a mut State,
-    logic: &'a mut Logic<'a>,
+pub struct World<'a> {
+    state: Rc<RefCell<State>>,
+    logic: Logic<'a>,
 }
 
-impl World<'_> {
-    fn advance(&mut self) {
-        self.logic.advance(self.state);
+impl<'a> World<'a> {
+    pub fn new(state: Rc<RefCell<State>>, logic: Logic<'a>) -> Self {
+        Self { state, logic }
+    }
+
+    pub fn advance(&self) {
+        self.logic.advance(&mut *self.state.borrow_mut());
     }
 }

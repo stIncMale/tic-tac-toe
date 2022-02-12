@@ -28,10 +28,10 @@ This project uses [Cargo](https://doc.rust-lang.org/cargo/index.html) for build 
 
 Run from the project root directory:
 
-| #   | Command                                                                             | Description                                                   |
-|-----|-------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| 0   | `{ cargo clippy --all-targets --all-features ; cargo fmt --check ; } && cargo test` | Analyzes and reports errors, checks style, runs tests.        |
-| 0.1 | `cargo fmt`                                                                         | Reformats the code using`rustfmt`.                            |
-| 0.2 | `cargo clean`                                                                       | Deletes the`target` directory.                                |
-| 1   | `cargo build`                                                                       | Builds the project into the`target` directory.                |
-| 2   | `cargo run`                                                                         | Runs the project executable, builds the project if necessary. |
+| #   | Command                                                                        | Description                                                   |
+|-----|--------------------------------------------------------------------------------|---------------------------------------------------------------|
+| 0   | `cargo clippy --all-targets --all-features && cargo fmt --check && cargo test` | Analyzes and reports errors, checks style, runs tests.        |
+| 0.1 | `cargo fmt`                                                                    | Reformats the code using`rustfmt`.                            |
+| 0.2 | `cargo clean`                                                                  | Deletes the`target` directory.                                |
+| 1   | `cargo build`                                                                  | Builds the project into the`target` directory.                |
+| 2   | `cargo run`                                                                    | Runs the project executable, builds the project if necessary. |
