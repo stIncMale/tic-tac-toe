@@ -176,11 +176,14 @@ impl<'a> Logic<'a> {
 
     fn advance_inround(&self, state: &mut State) {
         let player_id = state.turn();
-        if let Option::Some(action) = self.action_queues[player_id.idx].pop() {
+        while let Option::Some(action) = self.action_queues[player_id.idx].pop() {
             match action {
                 Action::Surrender => Logic::surrender(state),
                 Action::Occupy(cell) => Logic::occupy(state, &cell),
                 Action::Ready => panic!("{:?}, {:?}", player_id, action),
+            }
+            if state.turn() != player_id {
+                break;
             }
         }
     }
