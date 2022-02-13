@@ -31,3 +31,6 @@ test-case = "1.2.1"
 
 [profile.release]
 opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
