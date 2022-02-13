@@ -1,4 +1,4 @@
-use crate::kernel::game as g;
+use crate::kernel::game::{Action, ActionQueue};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 
@@ -7,7 +7,7 @@ mod tests;
 
 #[derive(Debug)]
 pub struct DefaultActionQueue {
-    actions: RefCell<VecDeque<g::Action>>,
+    actions: RefCell<VecDeque<Action>>,
 }
 
 impl DefaultActionQueue {
@@ -17,13 +17,13 @@ impl DefaultActionQueue {
         }
     }
 
-    pub fn add(&self, action: g::Action) {
+    pub fn add(&self, action: Action) {
         self.actions.borrow_mut().push_back(action);
     }
 }
 
-impl g::ActionQueue for DefaultActionQueue {
-    fn pop(&self) -> Option<g::Action> {
+impl ActionQueue for DefaultActionQueue {
+    fn pop(&self) -> Option<Action> {
         self.actions.borrow_mut().pop_front()
     }
 }

@@ -1,11 +1,11 @@
 #![cfg(test)]
 #![allow(non_snake_case)]
 
-use super::Mark::O;
-use super::Mark::X;
-use super::Phase::Inround;
-use super::*;
+use crate::kernel::game::{
+    Action, ActionQueue, Board, Mark, Mark::O, Mark::X, Phase::Inround, Player, PlayerId, State,
+};
 use std::cell::RefCell;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 struct VecActionQueue {
@@ -56,9 +56,13 @@ fn player_set_wins(state: &mut State, player_mark: Mark, wins: u32) {
 }
 
 mod Logic_single_action {
-    use super::super::Action::{Occupy, Ready, Surrender};
-    use super::super::Phase::{Beginning, Outround};
-    use super::*;
+    use crate::kernel::game::tests::{
+        player_set_wins, required_ready_from_players, state_with_board, VecActionQueue,
+    };
+    use crate::kernel::game::{
+        Action::Occupy, Action::Ready, Action::Surrender, Board, Cell, Logic, Mark::O, Mark::X,
+        Phase::Beginning, Phase::Inround, Phase::Outround, PlayerId,
+    };
     use pretty_assertions_sorted::assert_eq_sorted;
     use test_case::test_case;
 
@@ -288,9 +292,13 @@ mod Logic_single_action {
 }
 
 mod Logic_multiple_actions {
-    use super::super::Action::{Occupy, Ready};
-    use super::super::Phase::{Beginning, Outround};
-    use super::*;
+    use crate::kernel::game::tests::{
+        player_set_wins, required_ready_from_players, state_with_board, VecActionQueue,
+    };
+    use crate::kernel::game::{
+        Action::Occupy, Action::Ready, Board, Cell, Logic, Mark::O, Mark::X, Phase::Beginning,
+        Phase::Outround,
+    };
     use pretty_assertions_sorted::assert_eq_sorted;
 
     #[test]

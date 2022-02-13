@@ -9,18 +9,24 @@
 #![allow(dead_code, clippy::missing_errors_doc, clippy::similar_names)]
 
 use std::{env, process};
-use tic_tac_toe::{run, ParsedArgs};
+use tic_tac_toe::cli::ParsedArgs;
+use tic_tac_toe::run;
+
+mod exit_code {
+    pub const SUCCESS: i32 = 0;
+    pub const FAILURE: i32 = 1;
+    pub const INVALID_ARGS: i32 = 2;
+}
 
 fn main() {
-    let args = env::args()
-        // skip the path of the executable
-        .skip(1);
-    let parsed_args = ParsedArgs::new(args).unwrap_or_else(|e| {
-        eprintln!("Invalid arguments. {}", e);
-        process::exit(1);
+    let parsed_args = ParsedArgs::from_iterator(env::args_os()).unwrap_or_else(|e| {
+        eprintln!("{}", e);
+        process::exit(exit_code::INVALID_ARGS);
     });
     if let Err(e) = run(parsed_args) {
         eprintln!("{}", e);
-        process::exit(1);
+        process::exit(exit_code::FAILURE);
+    } else {
+        process::exit(exit_code::SUCCESS);
     }
 }
