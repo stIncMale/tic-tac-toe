@@ -8,8 +8,8 @@ description = "A multiplayer turn-based game."
 license = "WTFPL <http://www.wtfpl.net>"
 repository = "https://github.com/stIncMale/tic-tac-toe"
 readme = "readme.md"
-keywords = ["learning"]
-categories = ["games", "command-line-utilities"]
+keywords = ["tui"]
+categories = ["command-line-utilities", "games"]
 
 [lib]
 name = "tic_tac_toe"

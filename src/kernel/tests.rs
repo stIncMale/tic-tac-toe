@@ -4,7 +4,7 @@
 mod DefaultActionQueue {
     use crate::kernel::game::Action::{Ready, Surrender};
     use crate::kernel::game::ActionQueue;
-    use crate::kernel::DefaultActionQueue;
+    use crate::DefaultActionQueue;
     use pretty_assertions_sorted::assert_eq_sorted;
 
     #[test]

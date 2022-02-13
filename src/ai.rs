@@ -1,4 +1,5 @@
-use crate::kernel::game::{Action, ActionQueue, State};
+use crate::kernel::game::{Action, ActionQueue};
+use crate::State;
 use std::cell::RefCell;
 use std::rc::Rc;
 

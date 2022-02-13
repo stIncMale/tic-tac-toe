@@ -8,9 +8,10 @@
 )]
 #![allow(dead_code, clippy::missing_errors_doc, clippy::similar_names)]
 
-use crate::cli::{ParsedArgs, ParsedArgs::Dedicated, ParsedArgs::Interactive};
+use crate::cli::ParsedArgs;
 use crate::kernel::game::{Logic, Mark, Player, PlayerId, State, World};
 use crate::kernel::DefaultActionQueue;
+use crate::ParsedArgs::{Dedicated, Interactive};
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;

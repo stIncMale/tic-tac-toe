@@ -1,3 +1,5 @@
+use crate::kernel::game::Action::{Occupy, Ready, Surrender};
+use crate::kernel::game::Phase::{Beginning, Inround, Outround};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -44,7 +46,7 @@ enum Phase {
 
 impl Default for Phase {
     fn default() -> Self {
-        Phase::Beginning
+        Beginning
     }
 }
 
@@ -154,8 +156,8 @@ impl<'a> Logic<'a> {
 
     fn advance(&self, state: &mut State) {
         match state.phase {
-            Phase::Beginning | Phase::Outround => self.advance_beginning_outround(state),
-            Phase::Inround => self.advance_inround(state),
+            Beginning | Outround => self.advance_beginning_outround(state),
+            Inround => self.advance_inround(state),
         };
     }
 
@@ -164,7 +166,7 @@ impl<'a> Logic<'a> {
             let player_id = state.players[i].id;
             if state.required_ready.contains(&player_id) {
                 if let Option::Some(action) = self.action_queues[player_id.idx].pop() {
-                    if action == Action::Ready {
+                    if action == Ready {
                         Logic::ready(state, player_id);
                     } else {
                         panic!("{:?}, {:?}", player_id, action)
@@ -178,9 +180,9 @@ impl<'a> Logic<'a> {
         let player_id = state.turn();
         while let Option::Some(action) = self.action_queues[player_id.idx].pop() {
             match action {
-                Action::Surrender => Logic::surrender(state),
-                Action::Occupy(cell) => Logic::occupy(state, &cell),
-                Action::Ready => panic!("{:?}, {:?}", player_id, action),
+                Surrender => Logic::surrender(state),
+                Occupy(cell) => Logic::occupy(state, &cell),
+                Ready => panic!("{:?}, {:?}", player_id, action),
             }
             if state.turn() != player_id {
                 break;
@@ -190,7 +192,7 @@ impl<'a> Logic<'a> {
 
     fn ready(state: &mut State, player_id: PlayerId) {
         assert!(
-            state.phase == Phase::Beginning || state.phase == Phase::Outround,
+            state.phase == Beginning || state.phase == Outround,
             "{:?}, {:?}",
             state.phase,
             player_id
@@ -198,20 +200,20 @@ impl<'a> Logic<'a> {
         state.required_ready.remove(&player_id);
         if state.required_ready.is_empty() {
             match state.phase {
-                Phase::Beginning => {}
-                Phase::Outround => {
+                Beginning => {}
+                Outround => {
                     state.step = 0;
                     state.round += 1;
                     state.board.clear();
                 }
-                Phase::Inround => panic!(),
+                Inround => panic!(),
             }
-            state.phase = Phase::Inround;
+            state.phase = Inround;
         }
     }
 
     fn surrender(state: &mut State) {
-        assert_eq!(state.phase, Phase::Inround);
+        assert_eq!(state.phase, Inround);
         // for more players this method would have been implemented quite differently
         assert_eq!(State::PLAYER_COUNT, 2);
         let idx_other_player = (state.turn().idx + 1) % state.players.len();
@@ -220,7 +222,7 @@ impl<'a> Logic<'a> {
     }
 
     fn occupy(state: &mut State, cell: &Cell) {
-        assert_eq!(state.phase, Phase::Inround);
+        assert_eq!(state.phase, Inround);
         state.board.set(cell, state.players[state.turn().idx].mark);
         if Logic::win_condition(&state.board, cell) {
             Logic::win(state);
@@ -232,7 +234,7 @@ impl<'a> Logic<'a> {
     }
 
     fn set_outround(state: &mut State) {
-        state.phase = Phase::Outround;
+        state.phase = Outround;
         state
             .required_ready
             .extend(state.players.iter().map(|p| p.id));

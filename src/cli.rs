@@ -1,4 +1,4 @@
-use crate::cli::{ParsedArgs::Dedicated, ParsedArgs::Interactive};
+use crate::{Dedicated, Interactive};
 use clap::{App, Arg, Error};
 use std::ffi::OsString;
 use std::net::SocketAddr;
@@ -14,7 +14,9 @@ fn app() -> App<'static> {
         The interactive mode is the default one and allows \
         playing offline against an AI, hosting a game, joining a game as a guest. \
         The dedicated server mode allows guests to join, find other players and play with them.\n\n\
-        Homepage: <https://github.com/stIncMale/tic-tac-toe>.";
+        Homepage: <https://github.com/stIncMale/tic-tac-toe>.\n\n\
+        WARNING: The project is being developed, so not all functionality is implemented. \
+        Attempts to use unimplemented features result in the process termination.";
     App::new("tick-tack-toe")
         .about(ABOUT)
         .long_about(ABOUT)

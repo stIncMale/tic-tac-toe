@@ -11,8 +11,7 @@ mod app {
 }
 
 mod ParsedArgs {
-    use crate::cli::ParsedArgs;
-    use crate::Dedicated;
+    use crate::{Dedicated, ParsedArgs};
     use pretty_assertions_sorted::assert_eq;
     use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs};
     use std::str::FromStr;
