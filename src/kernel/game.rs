@@ -15,9 +15,9 @@ pub enum Mark {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Player {
-    id: PlayerId,
+    pub id: PlayerId,
     mark: Mark,
-    wins: u32,
+    pub wins: u32,
 }
 
 impl Player {
@@ -38,7 +38,7 @@ impl PlayerId {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum Phase {
+pub enum Phase {
     Beginning,
     Inround,
     Outround,
@@ -65,7 +65,7 @@ impl Cell {
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
-struct Board {
+pub struct Board {
     cells: [[Option<Mark>; Board::SIZE]; Board::SIZE],
 }
 
@@ -81,7 +81,7 @@ impl Board {
         self.cells[cell.x][cell.y] = Option::from(mark);
     }
 
-    fn get(&self, cell: &Cell) -> Option<Mark> {
+    pub fn get(&self, cell: &Cell) -> Option<Mark> {
         self.cells[cell.x][cell.y]
     }
 
@@ -93,20 +93,20 @@ impl Board {
         }
     }
 
-    fn size(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.cells.len()
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct State {
-    board: Board,
-    players: [Player; State::PLAYER_COUNT],
-    phase: Phase,
-    game_rounds: u32,
-    round: u32,
-    step: u32,
-    required_ready: HashSet<PlayerId>,
+    pub board: Board,
+    pub players: [Player; State::PLAYER_COUNT],
+    pub phase: Phase,
+    pub game_rounds: u32,
+    pub round: u32,
+    pub step: u32,
+    pub required_ready: HashSet<PlayerId>,
 }
 
 impl State {
