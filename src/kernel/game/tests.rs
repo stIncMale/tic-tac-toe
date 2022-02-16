@@ -373,8 +373,8 @@ mod Logic_multiple_actions {
             Some(Occupy(Cell::new(0, 1))),
             Some(Occupy(Cell::new(2, 2))),
         ]);
-        let actions_cnt = act_queue_px.actions.borrow().len() + act_queue_po.actions.borrow().len();
         let logic = Logic::new([&act_queue_px, &act_queue_po]);
+        let actions_cnt = act_queue_px.actions.borrow().len() + act_queue_po.actions.borrow().len();
         for _ in 0..actions_cnt {
             logic.advance(&mut state);
         }
