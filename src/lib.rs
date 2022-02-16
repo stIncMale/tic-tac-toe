@@ -9,8 +9,8 @@
 #![allow(dead_code, clippy::missing_errors_doc, clippy::similar_names)]
 
 use crate::cli::ParsedArgs;
-use crate::kernel::game::Action::{Occupy, Ready};
-use crate::kernel::game::{Cell, Logic, Mark, Player, PlayerId, State, World};
+use crate::kernel::game::Action::Ready;
+use crate::kernel::game::{Logic, Mark, Player, PlayerId, State, World};
 use crate::kernel::DefaultActionQueue;
 use crate::ParsedArgs::{Dedicated, Interactive};
 use std::cell::RefCell;
@@ -45,24 +45,6 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let game_world = World::new(Rc::clone(&game_state), game_logic);
     {
         act_queue_px.add(Ready);
-        act_queue_po.act();
-        game_world.advance();
-        game_world.advance();
-        println!("{:?}", game_state.borrow());
-
-        act_queue_px.add(Occupy(Cell::new(0, 0)));
-        act_queue_po.act();
-        game_world.advance();
-        game_world.advance();
-        println!("{:?}", game_state.borrow());
-
-        act_queue_px.add(Occupy(Cell::new(1, 1)));
-        act_queue_po.act();
-        game_world.advance();
-        game_world.advance();
-        println!("{:?}", game_state.borrow());
-
-        act_queue_px.add(Occupy(Cell::new(2, 2)));
         act_queue_po.act();
         game_world.advance();
         game_world.advance();

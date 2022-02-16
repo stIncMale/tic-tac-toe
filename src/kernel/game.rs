@@ -184,7 +184,7 @@ impl<'a> Logic<'a> {
                 Occupy(cell) => Logic::occupy(state, &cell),
                 Ready => panic!("{:?}, {:?}", player_id, action),
             }
-            if state.turn() != player_id {
+            if state.turn() != player_id || state.phase != Inround {
                 break;
             }
         }

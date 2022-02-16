@@ -62,7 +62,7 @@ mod Logic_single_action {
     };
     use crate::kernel::game::Action::{Occupy, Ready, Surrender};
     use crate::kernel::game::Phase::{Beginning, Inround, Outround};
-    use crate::kernel::game::{Board, Cell};
+    use crate::kernel::game::{ActionQueue, Board, Cell};
     use crate::Mark::{O, X};
     use crate::{Logic, PlayerId};
     use pretty_assertions_sorted::assert_eq_sorted;
@@ -167,7 +167,7 @@ mod Logic_single_action {
         &Board { cells: [[Some(X), Some(O), Some(X)], [None, None, None], [None, None, None]] },
         &Cell::new(0, 2), false)]
     fn win_condition(board: &Board, last_occupied: &Cell, expected: bool) {
-        assert_eq_sorted!(Logic::win_condition(board, last_occupied), expected);
+        pretty_assertions_sorted::assert_eq!(Logic::win_condition(board, last_occupied), expected);
     }
 
     #[test]
@@ -261,12 +261,12 @@ mod Logic_single_action {
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
-            let mut state = state_with_board(Board::new());
-            player_set_wins(&mut state, X, 1);
-            state.phase = Inround;
-            state.round = 1;
-            state.step = 0;
-            state
+            let mut expected_state = state_with_board(Board::new());
+            player_set_wins(&mut expected_state, X, 1);
+            expected_state.phase = Inround;
+            expected_state.round = 1;
+            expected_state.step = 0;
+            expected_state
         });
     }
 
@@ -284,12 +284,29 @@ mod Logic_single_action {
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
-            let mut state = state_with_board(Board::new());
-            state.phase = Inround;
-            state.round = 0;
-            state.step = 0;
-            state
+            let mut expected_state = state_with_board(Board::new());
+            expected_state.phase = Inround;
+            expected_state.round = 0;
+            expected_state.step = 0;
+            expected_state
         });
+    }
+
+    #[test]
+    fn advance__stop_at_phase_change() {
+        let mut state = state_with_board(Board::new());
+        let expected_required_ready = required_ready_from_players(&state.players);
+        let act_queue_px =
+            VecActionQueue::new(vec![Some(Surrender), Some(Occupy(Cell::new(0, 0)))]);
+        Logic::new([&act_queue_px, &VecActionQueue::new(vec![])]).advance(&mut state);
+        assert_eq_sorted!(state, {
+            let mut expected_state = state_with_board(Board::new());
+            player_set_wins(&mut expected_state, O, 1);
+            expected_state.phase = Outround;
+            expected_state.required_ready = expected_required_ready;
+            expected_state
+        });
+        assert_ne!(act_queue_px.pop(), None);
     }
 }
 
