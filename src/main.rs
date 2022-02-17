@@ -6,7 +6,12 @@
     clippy::all,
     clippy::pedantic
 )]
-#![allow(dead_code, clippy::missing_errors_doc, clippy::similar_names)]
+#![allow(
+    dead_code,
+    clippy::missing_errors_doc,
+    clippy::similar_names,
+    clippy::cast_possible_truncation
+)]
 
 use std::{env, process};
 use tic_tac_toe::cli::ParsedArgs;

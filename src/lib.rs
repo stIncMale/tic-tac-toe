@@ -6,13 +6,19 @@
     clippy::all,
     clippy::pedantic
 )]
-#![allow(dead_code, clippy::missing_errors_doc, clippy::similar_names)]
+#![allow(
+    dead_code,
+    clippy::missing_errors_doc,
+    clippy::similar_names,
+    clippy::cast_possible_truncation
+)]
 
 use crate::cli::ParsedArgs;
 use crate::kernel::game::Action::Ready;
-use crate::kernel::game::{Logic, Mark, Player, PlayerId, State, World};
+use crate::kernel::game::{ActionQueue, Logic, Mark, Player, PlayerId, State, World};
 use crate::kernel::DefaultActionQueue;
 use crate::ParsedArgs::{Dedicated, Interactive};
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
@@ -35,21 +41,25 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let po = Player::new(PlayerId::new(1), Mark::O);
     let po_id = po.id;
     let game_state = Rc::new(RefCell::new(State::new([px, po], 5)));
-    let act_queue_px = DefaultActionQueue::new();
-    let act_queue_po = ai::Random::new(
+    let act_queue_px = Rc::new(DefaultActionQueue::new());
+    let act_queue_po = Rc::new(ai::Random::new(
         po_id,
-        Rc::clone(&game_state),
-        SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
-    );
-    let game_logic = Logic::new([&act_queue_px, &act_queue_po]);
-    let game_world = World::new(Rc::clone(&game_state), game_logic);
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
+    ));
+    let game_logic = Logic::new([
+        Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
+        Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
+    ]);
+    let game_world = World::new(Rc::clone(&game_state), game_logic, vec![act_queue_po]);
     {
         act_queue_px.add(Ready);
-        act_queue_po.act();
         game_world.advance();
         game_world.advance();
-        println!("{:?}", game_state.borrow());
     }
+    let x: &RefCell<State> = game_state.borrow();
+    let y: &State = &*x.borrow();
+    println!("{:?}", y);
+
     Ok(())
 }
 

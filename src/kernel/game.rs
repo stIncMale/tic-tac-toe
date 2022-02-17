@@ -145,12 +145,12 @@ pub trait ActionQueue: Debug {
 }
 
 #[derive(Debug)]
-pub struct Logic<'a> {
-    action_queues: [&'a dyn ActionQueue; State::PLAYER_COUNT],
+pub struct Logic {
+    action_queues: [Rc<dyn ActionQueue>; State::PLAYER_COUNT],
 }
 
-impl<'a> Logic<'a> {
-    pub fn new(action_queues: [&'a dyn ActionQueue; State::PLAYER_COUNT]) -> Self {
+impl<'a> Logic {
+    pub fn new(action_queues: [Rc<dyn ActionQueue>; State::PLAYER_COUNT]) -> Self {
         Self { action_queues }
     }
 
@@ -280,18 +280,27 @@ impl<'a> Logic<'a> {
     }
 }
 
-#[derive(Debug)]
-pub struct World<'a> {
-    state: Rc<RefCell<State>>,
-    logic: Logic<'a>,
+pub trait Ai: Debug {
+    fn act(&self, state: &State);
 }
 
-impl<'a> World<'a> {
-    pub fn new(state: Rc<RefCell<State>>, logic: Logic<'a>) -> Self {
-        Self { state, logic }
+#[derive(Debug)]
+pub struct World {
+    state: Rc<RefCell<State>>,
+    logic: Logic,
+    ais: Vec<Rc<dyn Ai>>,
+}
+
+impl World {
+    pub fn new(state: Rc<RefCell<State>>, logic: Logic, ais: Vec<Rc<dyn Ai>>) -> Self {
+        Self { state, logic, ais }
     }
 
     pub fn advance(&self) {
-        self.logic.advance(&mut *self.state.borrow_mut());
+        let state = &mut *self.state.borrow_mut();
+        for ai in &self.ais {
+            ai.act(state);
+        }
+        self.logic.advance(state);
     }
 }

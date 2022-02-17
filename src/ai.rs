@@ -1,41 +1,27 @@
 use crate::kernel::game::Action::Ready;
 use crate::kernel::game::Phase::{Beginning, Inround, Outround};
-use crate::kernel::game::{Action, ActionQueue, Cell};
+use crate::kernel::game::{Action, ActionQueue, Ai, Cell};
 use crate::{PlayerId, State};
 use oorandom::Rand32;
 use std::cell;
 use std::cell::RefCell;
-use std::rc::Rc;
 
 mod tests;
 
 #[derive(Debug)]
 pub struct Random {
     player_id: PlayerId,
-    state: Rc<RefCell<State>>,
     rng: RefCell<Rand32>,
     action: cell::Cell<Option<Action>>,
 }
 
 impl Random {
-    pub fn new(player_id: PlayerId, state: Rc<RefCell<State>>, seed: u64) -> Self {
+    pub fn new(player_id: PlayerId, seed: u64) -> Self {
         Self {
             player_id,
-            state,
             rng: RefCell::new(Rand32::new(seed)),
             action: cell::Cell::new(None),
         }
-    }
-
-    pub fn act(&self) {
-        if self.action.get().is_some() {
-            return;
-        }
-        let state = &*self.state.borrow();
-        match state.phase {
-            Beginning | Outround => self.act_beginning_outround(state),
-            Inround => self.act_inround(state),
-        };
     }
 
     fn act_beginning_outround(&self, state: &State) {
@@ -68,6 +54,18 @@ impl Random {
             )
             .unwrap();
         self.action.set(Some(Action::Occupy(rand_empty_cell)));
+    }
+}
+
+impl Ai for Random {
+    fn act(&self, state: &State) {
+        if self.action.get().is_some() {
+            return;
+        }
+        match state.phase {
+            Beginning | Outround => self.act_beginning_outround(state),
+            Inround => self.act_inround(state),
+        };
     }
 }
 
