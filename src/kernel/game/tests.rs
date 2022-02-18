@@ -8,54 +8,6 @@ use crate::{Mark, Player, PlayerId, State};
 use std::cell::RefCell;
 use std::collections::HashSet;
 
-#[derive(Debug)]
-struct VecActionQueue {
-    actions: RefCell<Vec<Option<Action>>>,
-}
-
-impl VecActionQueue {
-    fn new(mut actions: Vec<Option<Action>>) -> Self {
-        actions.reverse();
-        Self {
-            actions: RefCell::new(actions),
-        }
-    }
-}
-
-impl ActionQueue for VecActionQueue {
-    fn pop(&self) -> Option<Action> {
-        self.actions.borrow_mut().pop().unwrap_or(None)
-    }
-}
-
-fn state_with_board(board: Board) -> State {
-    State {
-        board,
-        players: [
-            Player::new(PlayerId::new(0), X),
-            Player::new(PlayerId::new(1), O),
-        ],
-        phase: Inround,
-        game_rounds: 5,
-        round: 0,
-        step: 0,
-        required_ready: HashSet::new(),
-    }
-}
-
-fn required_ready_from_players(players: &[Player]) -> HashSet<PlayerId> {
-    players.iter().map(|p| p.id).collect::<HashSet<PlayerId>>()
-}
-
-fn player_set_wins(state: &mut State, player_mark: Mark, wins: u32) {
-    state
-        .players
-        .iter_mut()
-        .find(|p| p.mark == player_mark)
-        .unwrap()
-        .wins = wins;
-}
-
 mod Logic_single_action {
     use crate::kernel::game::tests::{
         player_set_wins, required_ready_from_players, state_with_board, VecActionQueue,
@@ -79,8 +31,8 @@ mod Logic_single_action {
             ],
         });
         Logic::new([
-            Rc::new(VecActionQueue::new(vec![])),
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(PlayerId::new(0), vec![])),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(
@@ -99,8 +51,11 @@ mod Logic_single_action {
     fn advance__occupy_action() {
         let mut state = state_with_board(Board::new());
         Logic::new([
-            Rc::new(VecActionQueue::new(vec![Some(Occupy(Cell::new(1, 2)))])),
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(
+                PlayerId::new(0),
+                vec![Some(Occupy(Cell::new(1, 2)))],
+            )),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
@@ -121,8 +76,8 @@ mod Logic_single_action {
         let mut state = state_with_board(Board::new());
         let expected_required_ready = required_ready_from_players(&state.players);
         Logic::new([
-            Rc::new(VecActionQueue::new(vec![Some(Surrender)])),
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(PlayerId::new(0), vec![Some(Surrender)])),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
@@ -170,8 +125,8 @@ mod Logic_single_action {
     #[test_case(
         &Board { cells: [[Some(X), Some(O), Some(X)], [None, None, None], [None, None, None]] },
         &Cell::new(0, 2), false)]
-    fn win_condition(board: &Board, last_occupied: &Cell, expected: bool) {
-        pretty_assertions_sorted::assert_eq!(Logic::win_condition(board, last_occupied), expected);
+    fn is_win(board: &Board, last_occupied: &Cell, expected: bool) {
+        pretty_assertions_sorted::assert_eq!(Logic::is_win(board, last_occupied), expected);
     }
 
     #[test]
@@ -189,8 +144,11 @@ mod Logic_single_action {
         };
         let expected_required_ready = required_ready_from_players(&state.players);
         Logic::new([
-            Rc::new(VecActionQueue::new(vec![Some(Occupy(Cell::new(2, 2)))])),
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(
+                PlayerId::new(0),
+                vec![Some(Occupy(Cell::new(2, 2)))],
+            )),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
@@ -224,8 +182,11 @@ mod Logic_single_action {
         };
         let expected_required_ready = required_ready_from_players(&state.players);
         Logic::new([
-            Rc::new(VecActionQueue::new(vec![Some(Occupy(Cell::new(2, 2)))])),
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(
+                PlayerId::new(0),
+                vec![Some(Occupy(Cell::new(2, 2)))],
+            )),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
@@ -260,8 +221,8 @@ mod Logic_single_action {
             state
         };
         Logic::new([
-            Rc::new(VecActionQueue::new(vec![Some(Ready)])),
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(PlayerId::new(0), vec![Some(Ready)])),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
@@ -283,8 +244,8 @@ mod Logic_single_action {
             state
         };
         Logic::new([
-            Rc::new(VecActionQueue::new(vec![Some(Ready)])),
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(PlayerId::new(0), vec![Some(Ready)])),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
@@ -300,13 +261,13 @@ mod Logic_single_action {
     fn advance__stop_at_phase_change() {
         let mut state = state_with_board(Board::new());
         let expected_required_ready = required_ready_from_players(&state.players);
-        let act_queue_px = Rc::new(VecActionQueue::new(vec![
-            Some(Surrender),
-            Some(Occupy(Cell::new(0, 0))),
-        ]));
+        let act_queue_px = Rc::new(VecActionQueue::new(
+            PlayerId::new(0),
+            vec![Some(Surrender), Some(Occupy(Cell::new(0, 0)))],
+        ));
         Logic::new([
             Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
-            Rc::new(VecActionQueue::new(vec![])),
+            Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
         assert_eq_sorted!(state, {
@@ -328,7 +289,7 @@ mod Logic_multiple_actions {
     use crate::kernel::game::Mark::{O, X};
     use crate::kernel::game::Phase::{Beginning, Outround};
     use crate::kernel::game::{Board, Cell};
-    use crate::{ActionQueue, Logic};
+    use crate::{ActionQueue, Logic, PlayerId};
     use pretty_assertions_sorted::assert_eq_sorted;
     use std::rc::Rc;
 
@@ -341,23 +302,29 @@ mod Logic_multiple_actions {
             state
         };
         let expected_required_ready = required_ready_from_players(&state.players);
-        let act_queue_px = Rc::new(VecActionQueue::new(vec![
-            None,
-            None,
-            Some(Ready),
-            Some(Occupy(Cell::new(1, 1))),
-            None,
-            Some(Occupy(Cell::new(0, 0))),
-            Some(Occupy(Cell::new(0, 2))),
-            Some(Occupy(Cell::new(2, 0))),
-        ]));
-        let act_queue_po = Rc::new(VecActionQueue::new(vec![
-            Some(Ready),
-            Some(Occupy(Cell::new(1, 2))),
-            Some(Occupy(Cell::new(2, 2))),
-            None,
-            Some(Occupy(Cell::new(0, 1))),
-        ]));
+        let act_queue_px = Rc::new(VecActionQueue::new(
+            PlayerId::new(0),
+            vec![
+                None,
+                None,
+                Some(Ready),
+                Some(Occupy(Cell::new(1, 1))),
+                None,
+                Some(Occupy(Cell::new(0, 0))),
+                Some(Occupy(Cell::new(0, 2))),
+                Some(Occupy(Cell::new(2, 0))),
+            ],
+        ));
+        let act_queue_po = Rc::new(VecActionQueue::new(
+            PlayerId::new(1),
+            vec![
+                Some(Ready),
+                Some(Occupy(Cell::new(1, 2))),
+                Some(Occupy(Cell::new(2, 2))),
+                None,
+                Some(Occupy(Cell::new(0, 1))),
+            ],
+        ));
         let actions_cnt = act_queue_px.actions.borrow().len() + act_queue_po.actions.borrow().len();
         let logic = Logic::new([act_queue_px, act_queue_po]);
         for _ in 0..actions_cnt {
@@ -388,19 +355,25 @@ mod Logic_multiple_actions {
             state
         };
         let expected_required_ready = required_ready_from_players(&state.players);
-        let act_queue_px = Rc::new(VecActionQueue::new(vec![
-            Some(Occupy(Cell::new(0, 0))),
-            Some(Occupy(Cell::new(1, 0))),
-            Some(Occupy(Cell::new(0, 2))),
-            Some(Occupy(Cell::new(2, 1))),
-        ]));
-        let act_queue_po = Rc::new(VecActionQueue::new(vec![
-            Some(Occupy(Cell::new(1, 1))),
-            Some(Occupy(Cell::new(1, 2))),
-            Some(Occupy(Cell::new(2, 0))),
-            Some(Occupy(Cell::new(0, 1))),
-            Some(Occupy(Cell::new(2, 2))),
-        ]));
+        let act_queue_px = Rc::new(VecActionQueue::new(
+            PlayerId::new(0),
+            vec![
+                Some(Occupy(Cell::new(0, 0))),
+                Some(Occupy(Cell::new(1, 0))),
+                Some(Occupy(Cell::new(0, 2))),
+                Some(Occupy(Cell::new(2, 1))),
+            ],
+        ));
+        let act_queue_po = Rc::new(VecActionQueue::new(
+            PlayerId::new(1),
+            vec![
+                Some(Occupy(Cell::new(1, 1))),
+                Some(Occupy(Cell::new(1, 2))),
+                Some(Occupy(Cell::new(2, 0))),
+                Some(Occupy(Cell::new(0, 1))),
+                Some(Occupy(Cell::new(2, 2))),
+            ],
+        ));
         let logic = Logic::new([
             Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
             Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
@@ -424,4 +397,58 @@ mod Logic_multiple_actions {
             expected_state
         });
     }
+}
+
+#[derive(Debug)]
+struct VecActionQueue {
+    player_id: PlayerId,
+    actions: RefCell<Vec<Option<Action>>>,
+}
+
+impl VecActionQueue {
+    fn new(player_id: PlayerId, mut actions: Vec<Option<Action>>) -> Self {
+        actions.reverse();
+        Self {
+            player_id,
+            actions: RefCell::new(actions),
+        }
+    }
+}
+
+impl ActionQueue for VecActionQueue {
+    fn player_id(&self) -> PlayerId {
+        self.player_id
+    }
+
+    fn pop(&self) -> Option<Action> {
+        self.actions.borrow_mut().pop().unwrap_or(None)
+    }
+}
+
+fn state_with_board(board: Board) -> State {
+    State {
+        board,
+        players: [
+            Player::new(PlayerId::new(0), X),
+            Player::new(PlayerId::new(1), O),
+        ],
+        phase: Inround,
+        game_rounds: 5,
+        round: 0,
+        step: 0,
+        required_ready: HashSet::new(),
+    }
+}
+
+fn required_ready_from_players(players: &[Player]) -> HashSet<PlayerId> {
+    players.iter().map(|p| p.id).collect::<HashSet<PlayerId>>()
+}
+
+fn player_set_wins(state: &mut State, player_mark: Mark, wins: u32) {
+    state
+        .players
+        .iter_mut()
+        .find(|p| p.mark == player_mark)
+        .unwrap()
+        .wins = wins;
 }

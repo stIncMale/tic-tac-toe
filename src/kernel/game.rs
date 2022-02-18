@@ -128,7 +128,7 @@ impl State {
         }
     }
 
-    fn turn(&self) -> PlayerId {
+    pub fn turn(&self) -> PlayerId {
         PlayerId::new(usize::try_from(self.step + self.round).unwrap() % self.players.len())
     }
 }
@@ -141,6 +141,8 @@ pub enum Action {
 }
 
 pub trait ActionQueue: Debug {
+    fn player_id(&self) -> PlayerId;
+
     fn pop(&self) -> Option<Action>;
 }
 
@@ -149,8 +151,11 @@ pub struct Logic {
     action_queues: [Rc<dyn ActionQueue>; State::PLAYER_COUNT],
 }
 
-impl<'a> Logic {
+impl Logic {
     pub fn new(action_queues: [Rc<dyn ActionQueue>; State::PLAYER_COUNT]) -> Self {
+        for (idx, action_queue) in action_queues.iter().enumerate() {
+            assert_eq!(action_queue.player_id().idx, idx);
+        }
         Self { action_queues }
     }
 
@@ -224,7 +229,7 @@ impl<'a> Logic {
     fn occupy(state: &mut State, cell: &Cell) {
         assert_eq!(state.phase, Inround);
         state.board.set(cell, state.players[state.turn().idx].mark);
-        if Logic::win_condition(&state.board, cell) {
+        if Logic::is_win(&state.board, cell) {
             Logic::win(state);
         } else if Logic::last_step(state.step, &state.board) {
             Logic::draw(state);
@@ -240,7 +245,7 @@ impl<'a> Logic {
             .extend(state.players.iter().map(|p| p.id));
     }
 
-    fn win_condition(board: &Board, last_occupied: &Cell) -> bool {
+    fn is_win(board: &Board, last_occupied: &Cell) -> bool {
         let mut h_match = 0;
         let mut v_match = 0;
         let mut d1_match = 0;
@@ -277,6 +282,10 @@ impl<'a> Logic {
 
     fn draw(state: &mut State) {
         Logic::set_outround(state);
+    }
+
+    pub fn is_game_over(state: &State) -> bool {
+        state.round == state.game_rounds - 1 && state.phase == Phase::Outround
     }
 }
 

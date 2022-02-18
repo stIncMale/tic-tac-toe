@@ -39,9 +39,10 @@ pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
 fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let px = Player::new(PlayerId::new(0), Mark::X);
     let po = Player::new(PlayerId::new(1), Mark::O);
+    let px_id = px.id;
     let po_id = po.id;
     let game_state = Rc::new(RefCell::new(State::new([px, po], 5)));
-    let act_queue_px = Rc::new(DefaultActionQueue::new());
+    let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
     let act_queue_po = Rc::new(ai::Random::new(
         po_id,
         SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,

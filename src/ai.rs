@@ -31,29 +31,24 @@ impl Random {
     }
 
     fn act_inround(&self, state: &State) {
-        let board = &state.board;
-        let board_size = board.size();
-        let mut empty_cells = Vec::with_capacity(board_size * board_size);
+        if state.turn() != self.player_id {
+            return;
+        }
+        let board_size = state.board.size();
+        let empty_cells_cnt = u32::try_from(board_size.pow(2)).unwrap() - state.step;
+        let mut shift = self.rng.borrow_mut().rand_range(0..empty_cells_cnt);
         for x in 0..board_size {
             for y in 0..board_size {
                 let cell = Cell::new(x, y);
-                if board.get(&cell).is_none() {
-                    empty_cells.push(cell);
+                if state.board.get(&cell).is_none() {
+                    if shift == 0 {
+                        self.action.set(Some(Action::Occupy(cell)));
+                        return;
+                    }
+                    shift -= 1;
                 }
             }
         }
-        assert!(!empty_cells.is_empty());
-        let rand_empty_cell = *empty_cells
-            .get(
-                usize::try_from(
-                    self.rng
-                        .borrow_mut()
-                        .rand_range(0..u32::try_from(empty_cells.len()).unwrap()),
-                )
-                .unwrap(),
-            )
-            .unwrap();
-        self.action.set(Some(Action::Occupy(rand_empty_cell)));
     }
 }
 
@@ -70,6 +65,10 @@ impl Ai for Random {
 }
 
 impl ActionQueue for Random {
+    fn player_id(&self) -> PlayerId {
+        self.player_id
+    }
+
     fn pop(&self) -> Option<Action> {
         self.action.take()
     }

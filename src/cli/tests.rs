@@ -1,13 +1,11 @@
 #![cfg(test)]
 #![allow(non_snake_case)]
 
-mod app {
-    use crate::cli;
+use crate::cli;
 
-    #[test]
-    fn app() {
-        cli::app().debug_assert();
-    }
+#[test]
+fn app() {
+    cli::app().debug_assert();
 }
 
 mod ParsedArgs {
