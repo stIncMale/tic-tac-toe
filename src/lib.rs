@@ -40,17 +40,22 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let po = Player::new(PlayerId::new(1), Mark::O);
     let px_id = px.id;
     let po_id = po.id;
-    let game_state = Rc::new(RefCell::new(State::new([px, po], 5)));
     let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
-    let act_queue_po = Rc::new(ai::Random::new(
-        po_id,
-        SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
-    ));
+    let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
     let game_logic = Logic::new([
         Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
         Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
     ]);
-    let game_world = World::new(Rc::clone(&game_state), game_logic, vec![act_queue_po]);
+    let game_state = Rc::new(RefCell::new(State::new([px, po], 5)));
+    let game_world = World::new(
+        Rc::clone(&game_state),
+        game_logic,
+        vec![Box::new(ai::Random::new(
+            po_id,
+            SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
+            act_queue_po,
+        ))],
+    );
     {
         act_queue_px.add(Ready);
         game_world.advance();

@@ -326,11 +326,11 @@ pub trait Ai: Debug {
 pub struct World {
     state: Rc<RefCell<State>>,
     logic: Logic,
-    ais: Vec<Rc<dyn Ai>>,
+    ais: Vec<Box<dyn Ai>>,
 }
 
 impl World {
-    pub fn new(state: Rc<RefCell<State>>, logic: Logic, ais: Vec<Rc<dyn Ai>>) -> Self {
+    pub fn new(state: Rc<RefCell<State>>, logic: Logic, ais: Vec<Box<dyn Ai>>) -> Self {
         Self { state, logic, ais }
     }
 

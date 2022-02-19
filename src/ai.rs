@@ -1,10 +1,10 @@
 use crate::game::Action::Ready;
 use crate::game::Phase::{Beginning, Inround, Outround};
-use crate::game::{Action, ActionQueue, Ai, Cell};
-use crate::{PlayerId, State};
+use crate::game::{Action, Ai, Cell};
+use crate::{DefaultActionQueue, PlayerId, State};
 use oorandom::Rand32;
-use std::cell;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 mod tests;
 
@@ -12,21 +12,21 @@ mod tests;
 pub struct Random {
     player_id: PlayerId,
     rng: RefCell<Rand32>,
-    action: cell::Cell<Option<Action>>,
+    action_queue: Rc<DefaultActionQueue>,
 }
 
 impl Random {
-    pub fn new(player_id: PlayerId, seed: u64) -> Self {
+    pub fn new(player_id: PlayerId, seed: u64, action_queue: Rc<DefaultActionQueue>) -> Self {
         Self {
             player_id,
             rng: RefCell::new(Rand32::new(seed)),
-            action: cell::Cell::new(None),
+            action_queue,
         }
     }
 
     fn act_beginning_outround(&self, state: &State) {
         if state.required_ready.contains(&self.player_id) {
-            self.action.set(Some(Ready));
+            self.action_queue.add(Ready);
         };
     }
 
@@ -42,7 +42,7 @@ impl Random {
                 let cell = Cell::new(x, y);
                 if state.board.get(&cell).is_none() {
                     if shift == 0 {
-                        self.action.set(Some(Action::Occupy(cell)));
+                        self.action_queue.add(Action::Occupy(cell));
                         return;
                     }
                     shift -= 1;
@@ -58,15 +58,5 @@ impl Ai for Random {
             Beginning | Outround => self.act_beginning_outround(state),
             Inround => self.act_inround(state),
         };
-    }
-}
-
-impl ActionQueue for Random {
-    fn player_id(&self) -> PlayerId {
-        self.player_id
-    }
-
-    fn pop(&self) -> Option<Action> {
-        self.action.take()
     }
 }

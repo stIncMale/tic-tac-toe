@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 
 mod Random {
-    use crate::{ai, ActionQueue, Logic, Mark, Player, PlayerId, State, World};
+    use crate::{ai, ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
     use ntest::timeout;
     use oorandom::Rand64;
     use std::cell::RefCell;
@@ -25,16 +25,21 @@ mod Random {
             let result = panic::catch_unwind(|| {
                 let px = Player::new(PlayerId::new(0), Mark::X);
                 let po = Player::new(PlayerId::new(1), Mark::O);
-                let ai_px = Rc::new(ai::Random::new(px.id, ai_rng_seed_px));
-                let ai_po = Rc::new(ai::Random::new(po.id, ai_rng_seed_po));
+                let px_id = px.id;
+                let po_id = po.id;
+                let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
+                let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
                 let state = Rc::new(RefCell::new(State::new([px, po], 5)));
                 let world = World::new(
                     Rc::clone(&state),
                     Logic::new([
-                        Rc::clone(&ai_px) as Rc<dyn ActionQueue>,
-                        Rc::clone(&ai_po) as Rc<dyn ActionQueue>,
+                        Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
+                        Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
                     ]),
-                    vec![ai_px, ai_po],
+                    vec![
+                        Box::new(ai::Random::new(px_id, ai_rng_seed_px, act_queue_px)),
+                        Box::new(ai::Random::new(po_id, ai_rng_seed_po, act_queue_po)),
+                    ],
                 );
                 while !Logic::is_game_over(&state.borrow()) {
                     world.advance();
