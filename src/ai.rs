@@ -1,6 +1,6 @@
-use crate::kernel::game::Action::Ready;
-use crate::kernel::game::Phase::{Beginning, Inround, Outround};
-use crate::kernel::game::{Action, ActionQueue, Ai, Cell};
+use crate::game::Action::Ready;
+use crate::game::Phase::{Beginning, Inround, Outround};
+use crate::game::{Action, ActionQueue, Ai, Cell};
 use crate::{PlayerId, State};
 use oorandom::Rand32;
 use std::cell;
@@ -54,9 +54,6 @@ impl Random {
 
 impl Ai for Random {
     fn act(&self, state: &State) {
-        if self.action.get().is_some() {
-            return;
-        }
         match state.phase {
             Beginning | Outround => self.act_beginning_outround(state),
             Inround => self.act_inround(state),

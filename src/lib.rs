@@ -14,9 +14,8 @@
 )]
 
 use crate::cli::ParsedArgs;
-use crate::kernel::game::Action::Ready;
-use crate::kernel::game::{ActionQueue, Logic, Mark, Player, PlayerId, State, World};
-use crate::kernel::DefaultActionQueue;
+use crate::game::Action::Ready;
+use crate::game::{ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
 use crate::ParsedArgs::{Dedicated, Interactive};
 use std::borrow::Borrow;
 use std::cell::RefCell;
@@ -26,7 +25,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 mod ai;
 pub mod cli;
-mod kernel;
+mod game;
 mod tests;
 
 pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
