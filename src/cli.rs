@@ -3,7 +3,7 @@ use clap::{App, Arg, Error};
 use std::ffi::OsString;
 use std::net::SocketAddr;
 
-mod tests;
+mod cli_tests;
 
 const LISTEN: &str = "listen";
 const LISTEN_CONSOLE: &str = "listen-console";

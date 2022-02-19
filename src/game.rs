@@ -5,7 +5,7 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::rc::Rc;
 
-mod tests;
+mod game_tests;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Mark {

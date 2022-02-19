@@ -26,7 +26,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod ai;
 pub mod cli;
 mod game;
-mod tests;
+mod lib_tests;
 
 pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
     match args {

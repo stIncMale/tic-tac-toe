@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::collections::HashSet;
 
 mod Logic_single_action {
-    use crate::game::tests::{
+    use crate::game::game_tests::{
         player_set_wins, required_ready_from_players, state_with_board, VecActionQueue,
     };
     use crate::game::Action::{Occupy, Ready, Surrender};
@@ -285,7 +285,7 @@ mod Logic_single_action {
 }
 
 mod Logic_multiple_actions {
-    use crate::game::tests::{
+    use crate::game::game_tests::{
         player_set_wins, required_ready_from_players, state_with_board, VecActionQueue,
     };
     use crate::game::Action::{Occupy, Ready};

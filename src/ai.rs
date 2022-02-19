@@ -6,7 +6,7 @@ use oorandom::Rand32;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-mod tests;
+mod ai_tests;
 
 #[derive(Debug)]
 pub struct Random {
