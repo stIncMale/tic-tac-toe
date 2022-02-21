@@ -22,35 +22,37 @@ mod Random {
         for _ in 0..1_000 {
             let ai_rng_seed_px = rng.rand_u64();
             let ai_rng_seed_po = rng.rand_u64();
-            let result = panic::catch_unwind(|| {
-                let px = Player::new(PlayerId::new(0), Mark::X);
-                let po = Player::new(PlayerId::new(1), Mark::O);
-                let px_id = px.id;
-                let po_id = po.id;
-                let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
-                let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
-                let state = Rc::new(RefCell::new(State::new([px, po], 5)));
-                let world = World::new(
-                    Rc::clone(&state),
-                    Logic::new([
-                        Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
-                        Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
-                    ]),
-                    vec![
-                        Box::new(ai::Random::new(px_id, ai_rng_seed_px, act_queue_px)),
-                        Box::new(ai::Random::new(po_id, ai_rng_seed_po, act_queue_po)),
-                    ],
-                );
-                while !Logic::is_game_over(&state.borrow()) {
-                    world.advance();
-                }
-                assert!(
-                    Logic::is_game_over(&state.borrow()),
-                    "{:?}",
-                    &state.borrow()
-                );
-            });
-            assert!(result.is_ok(), "{}, {}", ai_rng_seed_px, ai_rng_seed_po);
+            let px = Player::new(PlayerId::new(0), Mark::X);
+            let po = Player::new(PlayerId::new(1), Mark::O);
+            let px_id = px.id;
+            let po_id = po.id;
+            let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
+            let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
+            let state = Rc::new(RefCell::new(State::new([px, po], 5)));
+            let world = World::new(
+                Rc::clone(&state),
+                Logic::new([
+                    Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
+                    Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
+                ]),
+                vec![
+                    Box::new(ai::Random::new(px_id, ai_rng_seed_px, act_queue_px)),
+                    Box::new(ai::Random::new(po_id, ai_rng_seed_po, act_queue_po)),
+                ],
+            );
+            let enough_iterations = {
+                let state = state.borrow();
+                u32::try_from(state.board.size().pow(2) + 1).unwrap() * state.game_rounds
+            };
+            for _ in 0..enough_iterations {
+                world.advance();
+            }
+            assert!(
+                Logic::is_game_over(&state.borrow()),
+                "RNG seeds {:?}, {:?}",
+                (ai_rng_seed_px, ai_rng_seed_po),
+                &state.borrow()
+            );
         }
     }
 }

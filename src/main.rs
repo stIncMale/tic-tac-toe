@@ -7,7 +7,8 @@
     clippy::pedantic
 )]
 #![allow(
-    dead_code,
+    // dead_code,
+    // unused_imports,
     clippy::missing_errors_doc,
     clippy::similar_names,
     clippy::cast_possible_truncation

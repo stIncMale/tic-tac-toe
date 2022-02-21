@@ -189,6 +189,9 @@ impl Logic {
     }
 
     fn advance(&self, state: &mut State) {
+        if Logic::is_game_over(state) {
+            return;
+        }
         match state.phase {
             Beginning | Outround => self.advance_beginning_outround(state),
             Inround => self.advance_inround(state),
@@ -269,9 +272,11 @@ impl Logic {
 
     fn set_outround(state: &mut State) {
         state.phase = Outround;
-        state
-            .required_ready
-            .extend(state.players.iter().map(|p| p.id));
+        if !Logic::is_game_over(state) {
+            state
+                .required_ready
+                .extend(state.players.iter().map(|p| p.id));
+        }
     }
 
     fn is_win(board: &Board, last_occupied: &Cell) -> bool {
