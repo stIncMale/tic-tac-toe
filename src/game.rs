@@ -255,7 +255,7 @@ impl Logic {
         assert_eq!(State::PLAYER_COUNT, 2);
         let idx_other_player = (state.turn().idx + 1) % state.players.len();
         state.players[idx_other_player].wins += 1;
-        Logic::set_outround(state);
+        Logic::end_round(state);
     }
 
     fn occupy(state: &mut State, cell: &Cell) {
@@ -270,7 +270,7 @@ impl Logic {
         }
     }
 
-    fn set_outround(state: &mut State) {
+    fn end_round(state: &mut State) {
         state.phase = Outround;
         if !Logic::is_game_over(state) {
             state
@@ -311,11 +311,11 @@ impl Logic {
 
     fn win(state: &mut State) {
         state.players[state.turn().idx].wins += 1;
-        Logic::set_outround(state);
+        Logic::end_round(state);
     }
 
     fn draw(state: &mut State) {
-        Logic::set_outround(state);
+        Logic::end_round(state);
     }
 
     pub fn is_game_over(state: &State) -> bool {
