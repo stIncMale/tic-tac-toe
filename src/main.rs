@@ -7,8 +7,10 @@
     clippy::pedantic
 )]
 #![allow(
-    // dead_code,
     // unused_imports,
+    // unused_variables,
+    // unreachable_code,
+    // dead_code,
     clippy::missing_errors_doc,
     clippy::similar_names,
     clippy::cast_possible_truncation
@@ -24,6 +26,9 @@ mod exit_code {
     pub const INVALID_ARGS: i32 = 2;
 }
 
+/// Panic messages may not be observable because of them being printed to the terminal's
+/// "alternate screen", see [here](https://github.com/gyscos/cursive/issues/409) for more details.
+/// Redirect stdout to a file in order to see them.
 fn main() {
     let parsed_args = ParsedArgs::from_iterator(env::args_os()).unwrap_or_else(|e| {
         eprintln!("{}", e);

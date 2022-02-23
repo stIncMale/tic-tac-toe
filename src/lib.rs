@@ -8,6 +8,8 @@
 )]
 #![allow(
     // unused_imports,
+    // unused_variables,
+    // unreachable_code,
     dead_code,
     clippy::missing_errors_doc,
     clippy::similar_names,
@@ -15,10 +17,15 @@
 )]
 
 use crate::cli::ParsedArgs;
-use crate::game::Action::Ready;
-use crate::game::{ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
+use crate::game::{
+    Action, ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World,
+};
+use crate::tui::GameView;
 use crate::ParsedArgs::{Dedicated, Interactive};
-use std::borrow::Borrow;
+use cursive::event::{Event, EventResult, Key};
+use cursive::view::Nameable;
+use cursive::views::{Dialog, LinearLayout};
+use cursive::{Cursive, Printer};
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
@@ -28,6 +35,7 @@ mod ai;
 pub mod cli;
 mod game;
 mod lib_tests;
+mod tui;
 
 pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
     match args {
@@ -43,32 +51,62 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let po_id = po.id;
     let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
     let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
-    let game_logic = Logic::new([
-        Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
-        Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
-    ]);
     let game_state = Rc::new(RefCell::new(State::new([px, po], 5)));
     let game_world = World::new(
         Rc::clone(&game_state),
-        game_logic,
+        Logic::new([
+            Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
+            Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
+        ]),
         vec![Box::new(ai::Random::new(
             po_id,
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
             act_queue_po,
         ))],
     );
-    {
-        act_queue_px.add(Ready);
-        game_world.advance();
-        game_world.advance();
-    }
-    let x: &RefCell<State> = game_state.borrow();
-    let y: &State = &*x.borrow();
-    println!("{:?}", y);
-
-    Ok(())
+    act_queue_px.add(Action::Ready);
+    run_tui(game_state, Some(act_queue_px), game_world)
 }
 
 fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     todo!()
+}
+
+fn run_tui(
+    game_state: Rc<RefCell<State>>,
+    action_queue: Option<Rc<DefaultActionQueue>>,
+    game_world: World,
+) -> Result<(), Box<dyn Error>> {
+    let mut tui = Cursive::new();
+    tui.add_layer(GameView::new(game_state, action_queue, game_world));
+    configure_exit(&mut tui);
+    tui.update_theme(|_theme| {
+        // TODO configure
+        // theme.shadow = false;
+        // theme.palette[PaletteColor::Background] = Color::Dark(BaseColor::Black);
+        // theme.palette[PaletteColor::View] = Color::Dark(BaseColor::White);
+        // theme.borders = BorderStyle::Outset;
+    });
+    tui.set_fps(20);
+    tui.try_run_with::<Box<dyn Error>, _>(|| {
+        // work around https://github.com/gyscos/Cursive/issues/142
+        Ok(Box::new(cursive_buffered_backend::BufferedBackend::new(
+            cursive::backends::crossterm::Backend::init()?,
+        )))
+    })
+}
+
+fn configure_exit(tui: &mut Cursive) {
+    tui.add_global_callback(Event::Key(Key::Esc), |tui| {
+        let exit_dialog_name = "exit dialog";
+        if tui.find_name::<Dialog>(exit_dialog_name).is_none() {
+            tui.add_layer(
+                Dialog::text("Are you sure?")
+                    .title("Exit")
+                    .button("No", |tui| drop(tui.pop_layer()))
+                    .button("Yes", Cursive::quit)
+                    .with_name(exit_dialog_name),
+            );
+        };
+    });
 }
