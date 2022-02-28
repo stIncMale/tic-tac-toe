@@ -9,6 +9,7 @@
 #![allow(
     // unused_imports,
     // unused_variables,
+    // unused_mut,
     // unreachable_code,
     // dead_code,
     clippy::missing_errors_doc,

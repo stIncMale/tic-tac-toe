@@ -455,7 +455,7 @@ fn state_with_board(board: Board) -> State {
             Player::new(PlayerId::new(1), O),
         ],
         phase: Inround,
-        game_rounds: 5,
+        rounds: State::DEFAULT_ROUNDS,
         round: 0,
         step: 0,
         required_ready: HashSet::new(),

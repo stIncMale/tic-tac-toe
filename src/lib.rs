@@ -9,6 +9,7 @@
 #![allow(
     // unused_imports,
     // unused_variables,
+    // unused_mut,
     // unreachable_code,
     dead_code,
     clippy::missing_errors_doc,
@@ -17,13 +18,11 @@
 )]
 
 use crate::cli::ParsedArgs;
-use crate::game::{
-    Action, ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World,
-};
+use crate::game::{ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
 use crate::tui::GameView;
 use crate::ParsedArgs::{Dedicated, Interactive};
 use cursive::event::{Event, EventResult, Key};
-use cursive::view::Nameable;
+use cursive::traits::Nameable;
 use cursive::views::{Dialog, LinearLayout};
 use cursive::{Cursive, Printer};
 use std::cell::RefCell;
@@ -51,7 +50,7 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let po_id = po.id;
     let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
     let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
-    let game_state = Rc::new(RefCell::new(State::new([px, po], 5)));
+    let game_state = Rc::new(RefCell::new(State::new([px, po], State::DEFAULT_ROUNDS)));
     let game_world = World::new(
         Rc::clone(&game_state),
         Logic::new([
@@ -64,7 +63,6 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
             act_queue_po,
         ))],
     );
-    act_queue_px.add(Action::Ready);
     run_tui(game_state, Some(act_queue_px), game_world)
 }
 
@@ -98,14 +96,14 @@ fn run_tui(
 
 fn configure_exit(tui: &mut Cursive) {
     tui.add_global_callback(Event::Key(Key::Esc), |tui| {
-        let exit_dialog_name = "exit dialog";
-        if tui.find_name::<Dialog>(exit_dialog_name).is_none() {
+        let exit_dialog_id = "exit_dialog_id";
+        if tui.find_name::<Dialog>(exit_dialog_id).is_none() {
             tui.add_layer(
                 Dialog::text("Are you sure?")
                     .title("Exit")
                     .button("No", |tui| drop(tui.pop_layer()))
                     .button("Yes", Cursive::quit)
-                    .with_name(exit_dialog_name),
+                    .with_name(exit_dialog_id),
             );
         };
     });

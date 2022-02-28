@@ -28,7 +28,7 @@ mod Random {
             let po_id = po.id;
             let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
             let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
-            let state = Rc::new(RefCell::new(State::new([px, po], 5)));
+            let state = Rc::new(RefCell::new(State::new([px, po], State::DEFAULT_ROUNDS)));
             let world = World::new(
                 Rc::clone(&state),
                 Logic::new([
@@ -42,7 +42,7 @@ mod Random {
             );
             let enough_iterations = {
                 let state = state.borrow();
-                u32::try_from(state.board.size().pow(2) + 1).unwrap() * state.game_rounds
+                u32::try_from(state.board.size().pow(2) + 1).unwrap() * state.rounds
             };
             for _ in 0..enough_iterations {
                 world.advance();

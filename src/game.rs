@@ -2,7 +2,7 @@ use crate::game::Action::{Occupy, Ready, Surrender};
 use crate::game::Phase::{Beginning, Inround, Outround};
 use std::cell::RefCell;
 use std::collections::{HashSet, VecDeque};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
 mod game_tests;
@@ -11,6 +11,16 @@ mod game_tests;
 pub enum Mark {
     X,
     O,
+}
+
+impl Display for Mark {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let mark = match self {
+            Mark::X => "X",
+            Mark::O => "O",
+        };
+        write!(f, "{}", mark)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -28,7 +38,7 @@ impl Player {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct PlayerId {
-    idx: usize,
+    pub idx: usize,
 }
 
 impl PlayerId {
@@ -103,16 +113,17 @@ pub struct State {
     pub board: Board,
     pub players: [Player; State::PLAYER_COUNT],
     pub phase: Phase,
-    pub game_rounds: u32,
+    pub rounds: u32,
     pub round: u32,
     pub step: u32,
     pub required_ready: HashSet<PlayerId>,
 }
 
 impl State {
+    pub const DEFAULT_ROUNDS: u32 = 5;
     const PLAYER_COUNT: usize = 2;
 
-    pub fn new(players: [Player; State::PLAYER_COUNT], game_rounds: u32) -> Self {
+    pub fn new(players: [Player; State::PLAYER_COUNT], rounds: u32) -> Self {
         for (idx, player) in players.iter().enumerate() {
             assert_eq!(player.id.idx, idx);
         }
@@ -121,7 +132,7 @@ impl State {
             board: Board::new(),
             players,
             phase: Phase::default(),
-            game_rounds,
+            rounds,
             round: 0,
             step: 0,
             required_ready,
@@ -189,9 +200,6 @@ impl Logic {
     }
 
     fn advance(&self, state: &mut State) {
-        if Logic::is_game_over(state) {
-            return;
-        }
         match state.phase {
             Beginning | Outround => self.advance_beginning_outround(state),
             Inround => self.advance_inround(state),
@@ -203,6 +211,9 @@ impl Logic {
             let player_id = state.players[i].id;
             if state.required_ready.contains(&player_id) {
                 if let Option::Some(action) = self.action_queues[player_id.idx].pop() {
+                    if Logic::is_game_over(state) {
+                        panic!()
+                    }
                     if action == Ready {
                         Logic::ready(state, player_id);
                     } else {
@@ -216,6 +227,9 @@ impl Logic {
     fn advance_inround(&self, state: &mut State) {
         let player_id = state.turn();
         while let Option::Some(action) = self.action_queues[player_id.idx].pop() {
+            if Logic::is_game_over(state) {
+                panic!()
+            }
             match action {
                 Surrender => Logic::surrender(state),
                 Occupy(cell) => Logic::occupy(state, &cell),
@@ -319,7 +333,7 @@ impl Logic {
     }
 
     pub fn is_game_over(state: &State) -> bool {
-        state.round == state.game_rounds - 1 && state.phase == Phase::Outround
+        state.round == state.rounds - 1 && state.phase == Phase::Outround
     }
 }
 
