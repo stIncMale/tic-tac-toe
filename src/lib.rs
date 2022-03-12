@@ -22,6 +22,8 @@ use crate::game::{ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId
 use crate::tui::GameView;
 use crate::ParsedArgs::{Dedicated, Interactive};
 use cursive::event::{Event, EventResult, Key};
+use cursive::theme::Color;
+use cursive::theme::{BaseColor, BorderStyle, PaletteColor};
 use cursive::traits::Nameable;
 use cursive::views::{Dialog, LinearLayout};
 use cursive::{Cursive, Printer};
@@ -78,12 +80,15 @@ fn run_tui(
     let mut tui = Cursive::new();
     tui.add_layer(GameView::new(game_state, action_queue, game_world));
     configure_exit(&mut tui);
-    tui.update_theme(|_theme| {
-        // TODO configure
-        // theme.shadow = false;
-        // theme.palette[PaletteColor::Background] = Color::Dark(BaseColor::Black);
-        // theme.palette[PaletteColor::View] = Color::Dark(BaseColor::White);
-        // theme.borders = BorderStyle::Outset;
+    tui.update_theme(|theme| {
+        theme.shadow = true;
+        theme.borders = BorderStyle::Simple;
+        theme.palette[PaletteColor::Background] = Color::Rgb(255, 255, 255);
+        theme.palette[PaletteColor::View] = theme.palette[PaletteColor::Background];
+        theme.palette[PaletteColor::Highlight] = Color::Light(BaseColor::Black);
+        theme.palette[PaletteColor::HighlightInactive] = theme.palette[PaletteColor::Highlight];
+        theme.palette[PaletteColor::Secondary] = theme.palette[PaletteColor::Highlight];
+        theme.palette[PaletteColor::TitlePrimary] = Color::Dark(BaseColor::Blue);
     });
     tui.set_fps(20);
     tui.try_run_with::<Box<dyn Error>, _>(|| {

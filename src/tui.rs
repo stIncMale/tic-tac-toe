@@ -1,14 +1,14 @@
 use crate::game::{Action, Cell, Phase};
 use crate::{
-    ActionQueue, DefaultActionQueue, Event, EventResult, LinearLayout, PlayerId, Printer, State,
-    World,
+    ActionQueue, Cursive, DefaultActionQueue, Event, EventResult, LinearLayout, PlayerId, Printer,
+    State, World,
 };
 use cursive::align::HAlign;
 use cursive::direction::Direction;
 use cursive::event::{AnyCb, MouseButton, MouseEvent};
 use cursive::traits::{Finder, Nameable, View};
 use cursive::view::{CannotFocus, Selector, ViewNotFound};
-use cursive::views::{Button, Panel};
+use cursive::views::{Button, DummyView, HideableView, NamedView, Panel, ResizedView};
 use cursive::{Rect, Vec2};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -108,8 +108,8 @@ impl View for GameView {
         self.layout.call_on_any(selector, cb);
     }
 
-    fn focus_view(&mut self, _selector: &Selector<'_>) -> Result<EventResult, ViewNotFound> {
-        Err(ViewNotFound)
+    fn focus_view(&mut self, selector: &Selector<'_>) -> Result<EventResult, ViewNotFound> {
+        self.layout.focus_view(selector)
     }
 
     fn take_focus(&mut self, _source: Direction) -> Result<EventResult, CannotFocus> {
@@ -324,7 +324,7 @@ impl View for CellView {
     }
 
     fn take_focus(&mut self, source: Direction) -> Result<EventResult, CannotFocus> {
-        // take focus only from mouse
+        // take focus only from mouse of programmatically
         if source == Direction::none()
             && !GameControlsView::needs_go_confirmation(
                 &*self.game_state.borrow(),
@@ -346,40 +346,47 @@ struct GameControlsView {
     game_state: Rc<RefCell<State>>,
     interacting_player_id: Option<PlayerId>,
     layout: LinearLayout,
-    go_button_enabled: bool,
+    go_btn_enabled: bool,
 }
 
 impl GameControlsView {
-    const GO_BUTTON_ID: &'static str = "GO_BUTTON_ID";
+    const FOCUS_HOLDER_ID: &'static str = "FOCUS_HOLDER_ID";
+    const GO_BTN_ID: &'static str = "GO_BTN_ID";
+    const SURRENDER_BTN_ID: &'static str = "SURRENDER_BTN_ID";
 
     fn new(game_state: Rc<RefCell<State>>, action_queue: Option<Rc<DefaultActionQueue>>) -> Self {
-        let mut layout = LinearLayout::vertical();
+        let mut layout = LinearLayout::horizontal();
         if let Some(action_queue) = &action_queue {
-            let action_queue = Rc::clone(action_queue);
-            let game_state = Rc::clone(&game_state);
-            let go_button = Button::new("Go", move |tui| {
-                let game_state = &*game_state.borrow();
-                if GameControlsView::needs_go_confirmation(
-                    game_state,
-                    Some(action_queue.player_id()),
-                ) {
+            let go_btn = {
+                let action_queue = Rc::clone(action_queue);
+                GameControlsView::btn_hidden_on_cb(GameControlsView::GO_BTN_ID, "Go", move |_tui| {
                     action_queue.add(Action::Ready);
-                    tui.call_on_name(GameControlsView::GO_BUTTON_ID, |go_button: &mut Button| {
-                        go_button.disable();
-                    });
-                } else {
-                    panic!();
-                }
-            })
-            .disabled()
-            .with_name(GameControlsView::GO_BUTTON_ID);
-            layout.add_child(go_button);
+                })
+            };
+            let surrender_btn = {
+                let action_queue = Rc::clone(action_queue);
+                GameControlsView::btn_hidden_on_cb(
+                    GameControlsView::SURRENDER_BTN_ID,
+                    "Surrender",
+                    move |_tui| {
+                        action_queue.add(Action::Surrender);
+                        action_queue.add(Action::Ready);
+                    },
+                )
+            };
+            layout.add_child(DummyView {}.with_name(GameControlsView::FOCUS_HOLDER_ID));
+            layout.add_child(go_btn);
+            layout.add_child(surrender_btn);
         }
+        let centing_layout = LinearLayout::horizontal()
+            .child(ResizedView::with_full_width(DummyView {}))
+            .child(layout)
+            .child(ResizedView::with_full_width(DummyView {}));
         Self {
             game_state,
             interacting_player_id: action_queue.map(|action_queue| action_queue.player_id()),
-            layout,
-            go_button_enabled: false,
+            layout: centing_layout,
+            go_btn_enabled: false,
         }
     }
 
@@ -389,6 +396,50 @@ impl GameControlsView {
         } else {
             false
         }
+    }
+
+    fn btn_hidden_on_cb<F, S>(id: S, label: S, cb: F) -> NamedView<HideableView<Button>>
+    where
+        F: 'static + Fn(&mut Cursive),
+        S: Into<String>,
+    {
+        let id = id.into();
+        let btn = {
+            let id = id.clone();
+            HideableView::new(Button::new(label, move |tui| {
+                cb(tui);
+                assert!(tui
+                    .focus_name(GameControlsView::FOCUS_HOLDER_ID)
+                    .unwrap()
+                    .is_consumed());
+                tui.call_on_name(&id, |btn: &mut HideableView<Button>| {
+                    btn.hide();
+                });
+            }))
+        };
+        btn.with_name(id)
+    }
+
+    fn btn_disabled_on_cb<F, S>(id: S, label: S, cb: F) -> NamedView<Button>
+    where
+        F: 'static + Fn(&mut Cursive),
+        S: Into<String>,
+    {
+        let id = id.into();
+        let btn = {
+            let id = id.clone();
+            Button::new(label, move |tui| {
+                cb(tui);
+                assert!(tui
+                    .focus_name(GameControlsView::FOCUS_HOLDER_ID)
+                    .unwrap()
+                    .is_consumed());
+                tui.call_on_name(&id, |btn: &mut Button| {
+                    btn.disable();
+                });
+            })
+        };
+        btn.with_name(id)
     }
 }
 
@@ -402,31 +453,25 @@ impl View for GameControlsView {
             &self.game_state.borrow(),
             self.interacting_player_id,
         );
-        let switch_go_button_enabled = needs_go_confirmation != self.go_button_enabled;
-        let observed_go_button_enabled = self
+        let switch_go_btn_enabled = needs_go_confirmation != self.go_btn_enabled;
+        let observed_go_btn_enabled = self
             .layout
-            .find_name::<Button>(GameControlsView::GO_BUTTON_ID)
+            .find_name::<HideableView<Button>>(GameControlsView::GO_BTN_ID)
             .unwrap()
-            .is_enabled();
-        if observed_go_button_enabled && !self.go_button_enabled {
-            // TODO still does not focus
-            assert!(self
-                .layout
-                .focus_view(&Selector::Name(GameControlsView::GO_BUTTON_ID))
-                .unwrap()
-                .is_consumed());
-        }
-        self.go_button_enabled = observed_go_button_enabled;
-        self.layout
-            .call_on_name(GameControlsView::GO_BUTTON_ID, |go_button: &mut Button| {
-                if switch_go_button_enabled {
+            .is_visible();
+        self.go_btn_enabled = observed_go_btn_enabled;
+        self.layout.call_on_name(
+            GameControlsView::GO_BTN_ID,
+            |go_btn: &mut HideableView<Button>| {
+                if switch_go_btn_enabled {
                     if needs_go_confirmation {
-                        go_button.enable();
+                        go_btn.unhide();
                     } else {
-                        go_button.disable();
+                        go_btn.hide();
                     }
                 }
-            });
+            },
+        );
         self.layout.layout(view_size);
     }
 
@@ -446,8 +491,8 @@ impl View for GameControlsView {
         self.layout.call_on_any(selector, cb);
     }
 
-    fn focus_view(&mut self, _selector: &Selector<'_>) -> Result<EventResult, ViewNotFound> {
-        Err(ViewNotFound)
+    fn focus_view(&mut self, selector: &Selector<'_>) -> Result<EventResult, ViewNotFound> {
+        self.layout.focus_view(selector)
     }
 
     fn take_focus(&mut self, source: Direction) -> Result<EventResult, CannotFocus> {
