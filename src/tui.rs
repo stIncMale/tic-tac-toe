@@ -1,7 +1,7 @@
 use crate::game::{Action, Cell, Phase};
 use crate::{
-    ActionQueue, Cursive, DefaultActionQueue, Event, EventResult, LinearLayout, PlayerId, Printer,
-    State, World,
+    ActionQueue, Cursive, DefaultActionQueue, Event, EventResult, LinearLayout, Logic, PlayerId,
+    Printer, State, World,
 };
 use cursive::align::HAlign;
 use cursive::direction::Direction;
@@ -326,7 +326,7 @@ impl View for CellView {
     fn take_focus(&mut self, source: Direction) -> Result<EventResult, CannotFocus> {
         // take focus only from mouse of programmatically
         if source == Direction::none()
-            && !GameControlsView::needs_go_confirmation(
+            && !GameControlsView::needs_go(
                 &*self.game_state.borrow(),
                 self.action_queue.as_ref().map(|aq| aq.player_id()),
             )
@@ -346,10 +346,14 @@ struct GameControlsView {
     game_state: Rc<RefCell<State>>,
     interacting_player_id: Option<PlayerId>,
     layout: LinearLayout,
-    go_btn_enabled: bool,
+    go_btn_visible: bool,
+    surrender_btn_visible: bool,
 }
 
 impl GameControlsView {
+    /// A view with this ID is used to work around a bug in the cursive framework that
+    /// results in broken focusing behavior in situations
+    /// when the application hides/disables views.
     const FOCUS_HOLDER_ID: &'static str = "FOCUS_HOLDER_ID";
     const GO_BTN_ID: &'static str = "GO_BTN_ID";
     const SURRENDER_BTN_ID: &'static str = "SURRENDER_BTN_ID";
@@ -359,9 +363,13 @@ impl GameControlsView {
         if let Some(action_queue) = &action_queue {
             let go_btn = {
                 let action_queue = Rc::clone(action_queue);
-                GameControlsView::btn_hidden_on_cb(GameControlsView::GO_BTN_ID, "Go", move |_tui| {
-                    action_queue.add(Action::Ready);
-                })
+                GameControlsView::btn_hidden_on_cb(
+                    GameControlsView::GO_BTN_ID,
+                    "Ready/Continue",
+                    move |_tui| {
+                        action_queue.add(Action::Ready);
+                    },
+                )
             };
             let surrender_btn = {
                 let action_queue = Rc::clone(action_queue);
@@ -386,13 +394,23 @@ impl GameControlsView {
             game_state,
             interacting_player_id: action_queue.map(|action_queue| action_queue.player_id()),
             layout: centing_layout,
-            go_btn_enabled: false,
+            go_btn_visible: false,
+            surrender_btn_visible: false,
         }
     }
 
-    fn needs_go_confirmation(game_state: &State, interacting_player_id: Option<PlayerId>) -> bool {
+    fn needs_go(game_state: &State, interacting_player_id: Option<PlayerId>) -> bool {
         if let Some(interacting_player_id) = interacting_player_id {
             game_state.required_ready.contains(&interacting_player_id)
+                || Logic::is_game_over(game_state)
+        } else {
+            false
+        }
+    }
+
+    fn allows_surrender(game_state: &State, interacting_player_id: Option<PlayerId>) -> bool {
+        if interacting_player_id.is_some() {
+            game_state.phase == Phase::Inround
         } else {
             false
         }
@@ -404,7 +422,7 @@ impl GameControlsView {
         S: Into<String>,
     {
         let id = id.into();
-        let btn = {
+        let mut btn = {
             let id = id.clone();
             HideableView::new(Button::new(label, move |tui| {
                 cb(tui);
@@ -417,6 +435,7 @@ impl GameControlsView {
                 });
             }))
         };
+        btn.hide();
         btn.with_name(id)
     }
 
@@ -426,7 +445,7 @@ impl GameControlsView {
         S: Into<String>,
     {
         let id = id.into();
-        let btn = {
+        let mut btn = {
             let id = id.clone();
             Button::new(label, move |tui| {
                 cb(tui);
@@ -439,6 +458,7 @@ impl GameControlsView {
                 });
             })
         };
+        btn.disable();
         btn.with_name(id)
     }
 }
@@ -449,29 +469,53 @@ impl View for GameControlsView {
     }
 
     fn layout(&mut self, view_size: Vec2) {
-        let needs_go_confirmation = GameControlsView::needs_go_confirmation(
-            &self.game_state.borrow(),
-            self.interacting_player_id,
-        );
-        let switch_go_btn_enabled = needs_go_confirmation != self.go_btn_enabled;
-        let observed_go_btn_enabled = self
-            .layout
-            .find_name::<HideableView<Button>>(GameControlsView::GO_BTN_ID)
-            .unwrap()
-            .is_visible();
-        self.go_btn_enabled = observed_go_btn_enabled;
-        self.layout.call_on_name(
-            GameControlsView::GO_BTN_ID,
-            |go_btn: &mut HideableView<Button>| {
-                if switch_go_btn_enabled {
-                    if needs_go_confirmation {
-                        go_btn.unhide();
-                    } else {
-                        go_btn.hide();
-                    }
-                }
-            },
-        );
+        let game_state = &self.game_state.borrow();
+        {
+            // handle GO_BTN_ID
+            let need_go_confirmation =
+                GameControlsView::needs_go(game_state, self.interacting_player_id);
+            let switch_go_btn_visible = need_go_confirmation != self.go_btn_visible;
+            self.go_btn_visible = self
+                .layout
+                .find_name::<HideableView<Button>>(GameControlsView::GO_BTN_ID)
+                .unwrap()
+                .is_visible();
+            if switch_go_btn_visible {
+                self.layout.call_on_name(
+                    GameControlsView::GO_BTN_ID,
+                    |btn: &mut HideableView<Button>| {
+                        if need_go_confirmation {
+                            btn.unhide();
+                        } else {
+                            btn.hide();
+                        }
+                    },
+                );
+            }
+        }
+        {
+            // handle SURRENDER_BTN_ID
+            let allows_surrender =
+                GameControlsView::allows_surrender(game_state, self.interacting_player_id);
+            let switch_surrender_btn_visible = allows_surrender != self.surrender_btn_visible;
+            self.surrender_btn_visible = self
+                .layout
+                .find_name::<HideableView<Button>>(GameControlsView::SURRENDER_BTN_ID)
+                .unwrap()
+                .is_visible();
+            if switch_surrender_btn_visible {
+                self.layout.call_on_name(
+                    GameControlsView::SURRENDER_BTN_ID,
+                    |btn: &mut HideableView<Button>| {
+                        if allows_surrender {
+                            btn.unhide();
+                        } else {
+                            btn.hide();
+                        }
+                    },
+                );
+            }
+        }
         self.layout.layout(view_size);
     }
 

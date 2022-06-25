@@ -7,6 +7,7 @@
     clippy::pedantic
 )]
 #![allow(
+    // uncomment below to simplify editing, comment out again before committing
     // unused_imports,
     // unused_variables,
     // unused_mut,
