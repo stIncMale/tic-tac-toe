@@ -1,8 +1,8 @@
 # tic-tac-toe
 
 <p align="right">
-  <a href="https://doc.rust-lang.org/1.59.0/">
-    <img src="https://img.shields.io/badge/Rust-1.59.0, edition 2021-f74c00.svg?labelColor=black"
+  <a href="https://doc.rust-lang.org/1.63.0/">
+    <img src="https://img.shields.io/badge/Rust-1.63.0, edition 2021-f74c00.svg?labelColor=black"
         alt="Rust requirement">
   </a>
 </p>

@@ -14,7 +14,7 @@ fn app() -> App<'static> {
         The interactive mode is the default one and allows \
         playing offline against an AI, hosting a game, joining a game as a guest. \
         The dedicated server mode allows guests to join, find other players and play with them.\n\n\
-        Homepage: <https://github.com/stIncMale/tic-tac-toe>.\n\n\
+        HOMEPAGE: <https://github.com/stIncMale/tic-tac-toe>.\n\n\
         WARNING: The project is being developed, so not all functionality is implemented. \
         Attempts to use unimplemented features result in the process termination.";
     App::new("tick-tack-toe")
@@ -47,8 +47,9 @@ fn app() -> App<'static> {
                 .takes_value(true)
                 .forbid_empty_values(true)
                 .long_help(
-                    "The TCP socket address to listen on for console clients. \
-                    May be specified only if <listen> is specified. \
+                    "The TCP socket address to listen on for web console clients. \
+                    May be specified only if the application started as a dedicated server,\
+                    i.e., if <listen> is specified. \
                     If specified, the application starts a web console.",
                 ),
         )

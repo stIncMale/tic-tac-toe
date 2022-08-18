@@ -3,6 +3,7 @@
     nonstandard_style,
     future_incompatible,
     rust_2021_compatibility,
+    unused_qualifications,
     clippy::all,
     clippy::pedantic
 )]
@@ -12,7 +13,7 @@
     // unused_variables,
     // unused_mut,
     // unreachable_code,
-    dead_code,
+    // dead_code,
     clippy::missing_errors_doc,
     clippy::similar_names,
     clippy::cast_possible_truncation
@@ -66,7 +67,7 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
             act_queue_po,
         ))],
     );
-    run_tui(game_state, Some(act_queue_px), game_world)
+    run_tui(&game_state, Some(act_queue_px), game_world)
 }
 
 fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
@@ -74,12 +75,16 @@ fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn run_tui(
-    game_state: Rc<RefCell<State>>,
+    game_state: &Rc<RefCell<State>>,
     action_queue: Option<Rc<DefaultActionQueue>>,
     game_world: World,
 ) -> Result<(), Box<dyn Error>> {
     let mut tui = Cursive::new();
-    tui.add_layer(GameView::new(game_state, action_queue, game_world));
+    tui.add_layer(GameView::new(
+        game_state,
+        action_queue,
+        Box::new(move || game_world.advance()),
+    ));
     configure_exit(&mut tui);
     tui.update_theme(|theme| {
         theme.shadow = true;

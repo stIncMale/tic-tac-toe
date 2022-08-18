@@ -26,7 +26,7 @@ impl Display for Mark {
 #[derive(Debug, Eq, PartialEq)]
 pub struct Player {
     pub id: PlayerId,
-    mark: Mark,
+    pub mark: Mark,
     pub wins: u32,
 }
 
@@ -87,7 +87,7 @@ impl Board {
     }
 
     fn set(&mut self, cell: &Cell, mark: Mark) {
-        assert_eq!(self.cells[cell.x][cell.y], Option::None);
+        assert_eq!(self.cells[cell.x][cell.y], None);
         self.cells[cell.x][cell.y] = Option::from(mark);
     }
 
@@ -98,7 +98,7 @@ impl Board {
     fn clear(&mut self) {
         for row in &mut self.cells {
             for cell in row {
-                *cell = Option::None;
+                *cell = None;
             }
         }
     }
@@ -210,7 +210,7 @@ impl Logic {
         for i in 0..state.players.len() {
             let player_id = state.players[i].id;
             if state.required_ready.contains(&player_id) {
-                if let Option::Some(action) = self.action_queues[player_id.idx].pop() {
+                if let Some(action) = self.action_queues[player_id.idx].pop() {
                     if Logic::is_game_over(state) {
                         panic!()
                     }
@@ -226,7 +226,7 @@ impl Logic {
 
     fn advance_inround(&self, state: &mut State) {
         let player_id = state.turn();
-        while let Option::Some(action) = self.action_queues[player_id.idx].pop() {
+        while let Some(action) = self.action_queues[player_id.idx].pop() {
             if Logic::is_game_over(state) {
                 panic!()
             }
@@ -299,7 +299,7 @@ impl Logic {
         let mut d1_match = 0;
         let mut d2_match = 0;
         let mark = board.get(last_occupied);
-        assert_ne!(mark, Option::None);
+        assert_ne!(mark, None);
         let Cell { x, y } = *last_occupied;
         let size = board.size();
         for i in 0..size {
@@ -333,7 +333,7 @@ impl Logic {
     }
 
     pub fn is_game_over(state: &State) -> bool {
-        state.round == state.rounds - 1 && state.phase == Phase::Outround
+        state.round == state.rounds - 1 && state.phase == Outround
     }
 }
 

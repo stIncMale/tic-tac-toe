@@ -1,7 +1,7 @@
 use crate::game::{Action, Cell, Phase};
 use crate::{
     ActionQueue, Cursive, DefaultActionQueue, Event, EventResult, LinearLayout, Logic, PlayerId,
-    Printer, State, World,
+    Printer, State,
 };
 use cursive::align::HAlign;
 use cursive::direction::Direction;
@@ -11,54 +11,51 @@ use cursive::view::{CannotFocus, Selector, ViewNotFound};
 use cursive::views::{Button, DummyView, HideableView, NamedView, Panel, ResizedView};
 use cursive::{Rect, Vec2};
 use std::cell::RefCell;
+use std::cmp;
+use std::ops::Add;
 use std::rc::Rc;
 
 pub struct GameView {
-    _game_state: Rc<RefCell<State>>,
+    // TODO remove unused, pass a map?
     _action_queue: Option<Rc<DefaultActionQueue>>,
-    game_world: World,
+    on_loop_iteration: Box<dyn Fn()>,
     layout: LinearLayout,
 }
 
 impl GameView {
     pub fn new(
-        game_state: Rc<RefCell<State>>,
+        game_state: &Rc<RefCell<State>>,
         action_queue: Option<Rc<DefaultActionQueue>>,
-        game_world: World,
+        on_loop_iteration: Box<dyn Fn()>,
     ) -> Self {
         let layout = {
-            let game_board_layout = GameView::game_board_layout(&game_state, &action_queue);
+            let game_board_layout = GameView::game_board_layout(game_state, &action_queue);
             let players = &game_state.borrow().players;
             // for more players this method would have been implemented quite differently
             assert_eq!(players.len(), 2);
             let players_and_board_layout = LinearLayout::horizontal()
                 .child(Panel::new(PlayerView::new(
                     players[0].id,
-                    Rc::clone(&game_state),
+                    Rc::clone(game_state),
                 )))
                 .child(game_board_layout)
                 .child(Panel::new(PlayerView::new(
                     players[1].id,
-                    Rc::clone(&game_state),
+                    Rc::clone(game_state),
                 )));
             LinearLayout::vertical()
-                .child(Panel::new(GameInfoView::new(Rc::clone(&game_state))))
+                .child(Panel::new(GameInfoView::new(Rc::clone(game_state))))
                 .child(players_and_board_layout)
                 .child(Panel::new(GameControlsView::new(
-                    Rc::clone(&game_state),
+                    Rc::clone(game_state),
                     action_queue.as_ref().map(Rc::clone).or(None),
                 )))
         };
         Self {
-            _game_state: game_state,
             _action_queue: action_queue,
-            game_world,
+            on_loop_iteration,
             layout,
         }
-    }
-
-    fn on_loop_iteration(&self) {
-        self.game_world.advance();
     }
 
     fn game_board_layout(
@@ -84,7 +81,7 @@ impl GameView {
 
 impl View for GameView {
     fn draw(&self, printer: &Printer) {
-        self.on_loop_iteration();
+        (self.on_loop_iteration)();
         self.layout.draw(printer);
     }
 
@@ -139,12 +136,13 @@ impl GameInfoView {
 impl View for GameInfoView {
     fn draw(&self, printer: &Printer) {
         let game_state = &*self.game_state.borrow();
+        let txt_round = &format!("Round {}/{}", game_state.round + 1, game_state.rounds);
         printer.print(
             Vec2::new(
-                HAlign::Center.get_offset(1, self.size.x),
+                HAlign::Center.get_offset(txt_round.chars().count(), self.size.x),
                 HAlign::Center.get_offset(1, self.size.y),
             ),
-            &format!("round {}/{}", game_state.round + 1, game_state.rounds),
+            txt_round,
         );
     }
 
@@ -198,16 +196,18 @@ impl PlayerView {
 
 impl View for PlayerView {
     fn draw(&self, printer: &Printer) {
-        printer.print(
-            Vec2::new(
-                HAlign::Center.get_offset(1, self.size.x),
-                HAlign::Center.get_offset(1, self.size.y),
+        let player = &self.game_state.borrow().players[self.player_id.idx];
+        let txt_description = &format!("Player: {}", player.mark);
+        let txt_score = &format!("Wins: {}", player.wins);
+        let start = Vec2::new(
+            HAlign::Center.get_offset(
+                cmp::max(txt_description.chars().count(), txt_score.chars().count()),
+                self.size.x,
             ),
-            &format!(
-                "wins: {}",
-                self.game_state.borrow().players[self.player_id.idx].wins
-            ),
+            HAlign::Center.get_offset(2, self.size.y),
         );
+        printer.print(start, txt_description);
+        printer.print(start.add(Vec2::new(0, 1)), txt_score);
     }
 
     fn layout(&mut self, view_size: Vec2) {
@@ -284,12 +284,13 @@ impl CellView {
 impl View for CellView {
     fn draw(&self, printer: &Printer) {
         if let Some(mark) = self.game_state.borrow().board.get(&self.cell) {
+            let txt_mark = &format!("{}", mark);
             printer.print(
                 Vec2::new(
-                    HAlign::Center.get_offset(1, self.size.x),
+                    HAlign::Center.get_offset(txt_mark.chars().count(), self.size.x),
                     HAlign::Center.get_offset(1, self.size.y),
                 ),
-                &format!("{}", mark),
+                txt_mark,
             );
         }
     }
@@ -439,6 +440,8 @@ impl GameControlsView {
         btn.with_name(id)
     }
 
+    #[allow(dead_code)]
+    // TODO do I need this function?
     fn btn_disabled_on_cb<F, S>(id: S, label: S, cb: F) -> NamedView<Button>
     where
         F: 'static + Fn(&mut Cursive),
