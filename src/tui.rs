@@ -18,6 +18,7 @@ use std::rc::Rc;
 pub struct GameView {
     // TODO remove unused, pass a map?
     _action_queue: Option<Rc<DefaultActionQueue>>,
+    // TODO use generics / associated type instead of a trait object for on_loop_iteration?
     on_loop_iteration: Box<dyn Fn()>,
     layout: LinearLayout,
 }

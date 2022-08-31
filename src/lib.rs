@@ -8,15 +8,16 @@
     clippy::pedantic
 )]
 #![allow(
+    clippy::missing_errors_doc,
+    clippy::similar_names,
+    clippy::cast_possible_truncation,
     // uncomment below to simplify editing, comment out again before committing
+    // clippy::pedantic,
     // unused_imports,
     // unused_variables,
     // unused_mut,
     // unreachable_code,
     // dead_code,
-    clippy::missing_errors_doc,
-    clippy::similar_names,
-    clippy::cast_possible_truncation
 )]
 
 use crate::cli::ParsedArgs;

@@ -188,6 +188,7 @@ impl ActionQueue for DefaultActionQueue {
 
 #[derive(Debug)]
 pub struct Logic {
+    // TODO use generics instead of a trait object?
     action_queues: [Rc<dyn ActionQueue>; State::PLAYER_COUNT],
 }
 
@@ -345,6 +346,7 @@ pub trait Ai: Debug {
 pub struct World {
     state: Rc<RefCell<State>>,
     logic: Logic,
+    // TODO use generics instead of a trait object?
     ais: Vec<Box<dyn Ai>>,
 }
 
