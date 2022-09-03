@@ -65,6 +65,10 @@ pub enum ParsedArgs {
 }
 
 impl ParsedArgs {
+    /// # Errors
+    ///
+    /// Returns [`Result::Err`] when [`App::try_get_matches_from`] returns it,
+    /// or when it fails to parse `args`.
     pub fn from_iterator<I, T>(args: I) -> Result<ParsedArgs, Error>
     where
         I: IntoIterator<Item = T>,
@@ -72,6 +76,7 @@ impl ParsedArgs {
     {
         let matches = app().try_get_matches_from(args)?;
         if matches.is_present(LISTEN) {
+            // TODO stop using `value_of_t`, it's deprecated
             let listen: SocketAddr = matches.value_of_t(LISTEN)?;
             let listen_console = if matches.is_present(LISTEN_CONSOLE) {
                 Some(matches.value_of_t::<SocketAddr>(LISTEN_CONSOLE)?)

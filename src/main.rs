@@ -2,13 +2,18 @@
     warnings,
     nonstandard_style,
     future_incompatible,
-    rust_2021_compatibility,
     unused_qualifications,
     clippy::all,
-    clippy::pedantic
+    clippy::perf,
+    clippy::pedantic,
+    clippy::cargo,
+    // TODO uncomment in Clippy 1.64
+    // clippy::std_instead_of_core,
+    // clippy::std_instead_of_alloc,
+    // clippy::alloc_instead_of_core,
+    rustdoc::invalid_codeblock_attributes,
 )]
 #![allow(
-    clippy::missing_errors_doc,
     clippy::similar_names,
     clippy::cast_possible_truncation,
     // uncomment below to simplify editing, comment out again before committing
@@ -22,8 +27,8 @@
 
 use std::env;
 use std::process::ExitCode;
-use tic_tac_toe::cli::ParsedArgs;
-use tic_tac_toe::run;
+use tic_tac_toe_lib::cli::ParsedArgs;
+use tic_tac_toe_lib::run;
 
 /// Exit codes complementing the canonical ones in [`ExitCode`](std::process::ExitCode).
 mod exit_code {

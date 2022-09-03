@@ -2,13 +2,18 @@
     warnings,
     nonstandard_style,
     future_incompatible,
-    rust_2021_compatibility,
     unused_qualifications,
     clippy::all,
-    clippy::pedantic
+    clippy::perf,
+    clippy::pedantic,
+    clippy::cargo,
+    // TODO uncomment in Clippy 1.64
+    // clippy::std_instead_of_core,
+    // clippy::std_instead_of_alloc,
+    // clippy::alloc_instead_of_core,
+    rustdoc::invalid_codeblock_attributes,
 )]
 #![allow(
-    clippy::missing_errors_doc,
     clippy::similar_names,
     clippy::cast_possible_truncation,
     // uncomment below to simplify editing, comment out again before committing
@@ -41,6 +46,9 @@ mod game;
 mod lib_tests;
 mod tui;
 
+/// # Errors
+///
+/// If [`Result::Err`] is returned, then the whole application must be terminated.
 pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
     match args {
         Dedicated { .. } => run_dedicated(args),

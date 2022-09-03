@@ -12,7 +12,7 @@ keywords = ["tui"]
 categories = ["command-line-utilities", "games"]
 
 [lib]
-name = "tic_tac_toe"
+name = "tic_tac_toe_lib"
 path = "src/lib.rs"
 
 [[bin]]
