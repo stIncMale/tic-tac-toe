@@ -67,7 +67,7 @@ pub enum ParsedArgs {
 impl ParsedArgs {
     /// # Errors
     ///
-    /// Returns [`Result::Err`] when [`App::try_get_matches_from`] returns it,
+    /// Returns [`Result::Err`] when [`App::try_get_matches_from()`] returns it,
     /// or when it fails to parse `args`.
     pub fn from_iterator<I, T>(args: I) -> Result<ParsedArgs, Error>
     where
