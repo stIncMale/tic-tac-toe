@@ -90,11 +90,9 @@ fn run_tui(
     game_world: World,
 ) -> Result<(), Box<dyn Error>> {
     let mut tui = Cursive::new();
-    tui.add_layer(GameView::new(
-        game_state,
-        action_queue,
-        Box::new(move || game_world.advance()),
-    ));
+    tui.add_layer(GameView::new(game_state, action_queue, move || {
+        game_world.advance();
+    }));
     configure_exit(&mut tui);
     tui.update_theme(|theme| {
         theme.shadow = true;

@@ -15,22 +15,24 @@ use std::cmp;
 use std::ops::Add;
 use std::rc::Rc;
 
-pub struct GameView {
+pub struct GameView<F> {
     // TODO remove unused, pass a map?
     _action_queue: Option<Rc<DefaultActionQueue>>,
-    // TODO use generics / associated type instead of a trait object for on_loop_iteration?
-    on_loop_iteration: Box<dyn Fn()>,
+    on_loop_iteration: F,
     layout: LinearLayout,
 }
 
-impl GameView {
+impl<F> GameView<F>
+where
+    F: Fn() + 'static,
+{
     pub fn new(
         game_state: &Rc<RefCell<State>>,
         action_queue: Option<Rc<DefaultActionQueue>>,
-        on_loop_iteration: Box<dyn Fn()>,
+        on_loop_iteration: F,
     ) -> Self {
         let layout = {
-            let game_board_layout = GameView::game_board_layout(game_state, &action_queue);
+            let game_board_layout = GameView::<F>::game_board_layout(game_state, &action_queue);
             let players = &game_state.borrow().players;
             // for more players this method would have been implemented quite differently
             assert_eq!(players.len(), 2);
@@ -80,7 +82,10 @@ impl GameView {
     }
 }
 
-impl View for GameView {
+impl<F> View for GameView<F>
+where
+    F: Fn() + 'static,
+{
     fn draw(&self, printer: &Printer) {
         (self.on_loop_iteration)();
         self.layout.draw(printer);
