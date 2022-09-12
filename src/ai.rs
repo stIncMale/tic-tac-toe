@@ -35,7 +35,7 @@ impl Random {
             return;
         }
         let board_size = state.board.size();
-        let empty_cells_cnt = u32::try_from(board_size.pow(2)).unwrap() - state.step;
+        let empty_cells_cnt = u32::try_from(board_size.pow(2)).expect("should fit") - state.step;
         let mut shift = self.rng.borrow_mut().rand_range(0..empty_cells_cnt);
         for x in 0..board_size {
             for y in 0..board_size {

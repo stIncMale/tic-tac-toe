@@ -26,6 +26,9 @@
     // dead_code,
 )]
 
+extern crate core;
+
+use clap::ErrorKind::{DisplayHelp, DisplayVersion};
 use std::env;
 use std::process::ExitCode;
 use tic_tac_toe_lib::cli::ParsedArgs;
@@ -33,7 +36,7 @@ use tic_tac_toe_lib::run;
 
 /// Exit codes complementing the canonical ones in [`ExitCode`](std::process::ExitCode).
 mod exit_code {
-    pub const INVALID_ARGS: u8 = 3;
+    pub const INVALID_ARGS: u8 = 2;
 }
 
 /// Panic messages may not be observable because of them being printed to the terminal's
@@ -43,15 +46,18 @@ fn main() -> ExitCode {
     match ParsedArgs::from_iterator(env::args_os()) {
         Ok(parsed_args) => {
             if let Err(e) = run(parsed_args) {
-                eprintln!("{}", e);
+                eprint!("{}", e);
                 ExitCode::FAILURE
             } else {
                 ExitCode::SUCCESS
             }
         }
         Err(e) => {
-            eprintln!("{}", e);
-            ExitCode::from(exit_code::INVALID_ARGS)
+            e.print().expect("printing an error should not fail");
+            match e.kind() {
+                DisplayHelp | DisplayVersion => ExitCode::SUCCESS,
+                _ => ExitCode::from(exit_code::INVALID_ARGS),
+            }
         }
     }
 }

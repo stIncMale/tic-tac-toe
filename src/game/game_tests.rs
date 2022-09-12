@@ -17,7 +17,7 @@ mod Logic_single_action {
     use crate::game::{ActionQueue, Board, Cell};
     use crate::Logic;
     use crate::Mark::{O, X};
-    use pretty_assertions_sorted::assert_eq_sorted;
+    use pretty_assertions_sorted::{assert_eq, assert_eq_sorted};
     use std::rc::Rc;
     use test_case::test_case;
 
@@ -129,7 +129,7 @@ mod Logic_single_action {
         &Board { cells: [[Some(X), Some(O), Some(X)], [None, None, None], [None, None, None]] },
         &Cell::new(0, 2), false)]
     fn is_win(board: &Board, last_occupied: &Cell, expected: bool) {
-        pretty_assertions_sorted::assert_eq!(Logic::is_win(board, last_occupied), expected);
+        assert_eq!(Logic::is_win(board, last_occupied), expected);
     }
 
     #[test]

@@ -49,7 +49,7 @@ mod tui;
 
 /// # Errors
 ///
-/// If [`Result::Err`] is returned, then the whole application must be terminated.
+/// When the application must be terminated.
 pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
     match args {
         Dedicated { .. } => run_dedicated(args),

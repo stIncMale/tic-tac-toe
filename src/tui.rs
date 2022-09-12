@@ -435,6 +435,7 @@ impl GameControlsView {
                 cb(tui);
                 assert!(tui
                     .focus_name(GameControlsView::FOCUS_HOLDER_ID)
+                    // TODO replace with `expect`
                     .unwrap()
                     .is_consumed());
                 tui.call_on_name(&id, |btn: &mut HideableView<Button>| {

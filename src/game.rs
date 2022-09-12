@@ -140,7 +140,9 @@ impl State {
     }
 
     pub fn turn(&self) -> PlayerId {
-        PlayerId::new(usize::try_from(self.step + self.round).unwrap() % self.players.len())
+        PlayerId::new(
+            usize::try_from(self.step + self.round).expect("should fit") % self.players.len(),
+        )
     }
 }
 
@@ -321,7 +323,7 @@ impl Logic {
     }
 
     fn last_step(step: u32, board: &Board) -> bool {
-        step == u32::try_from(board.size().pow(2) - 1).unwrap()
+        step == u32::try_from(board.size().pow(2) - 1).expect("should fit")
     }
 
     fn win(state: &mut State) {
