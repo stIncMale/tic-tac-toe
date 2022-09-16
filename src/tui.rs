@@ -409,7 +409,7 @@ impl GameControlsView {
     fn needs_go(game_state: &State, interacting_player_id: Option<PlayerId>) -> bool {
         if let Some(interacting_player_id) = interacting_player_id {
             game_state.required_ready.contains(&interacting_player_id)
-                || Logic::is_game_over(game_state)
+                || Logic::<DefaultActionQueue>::is_game_over(game_state)
         } else {
             false
         }
@@ -461,6 +461,7 @@ impl GameControlsView {
                 cb(tui);
                 assert!(tui
                     .focus_name(GameControlsView::FOCUS_HOLDER_ID)
+                    // TODO replace with `expect`
                     .unwrap()
                     .is_consumed());
                 tui.call_on_name(&id, |btn: &mut Button| {

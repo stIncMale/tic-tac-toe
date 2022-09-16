@@ -15,8 +15,8 @@ mod Logic_single_action {
     use crate::game::Action::{Occupy, Ready, Surrender};
     use crate::game::Phase::{Beginning, Inround, Outround};
     use crate::game::{ActionQueue, Board, Cell};
-    use crate::Logic;
     use crate::Mark::{O, X};
+    use crate::{DefaultActionQueue, Logic};
     use pretty_assertions_sorted::{assert_eq, assert_eq_sorted};
     use std::rc::Rc;
     use test_case::test_case;
@@ -129,7 +129,10 @@ mod Logic_single_action {
         &Board { cells: [[Some(X), Some(O), Some(X)], [None, None, None], [None, None, None]] },
         &Cell::new(0, 2), false)]
     fn is_win(board: &Board, last_occupied: &Cell, expected: bool) {
-        assert_eq!(Logic::is_win(board, last_occupied), expected);
+        assert_eq!(
+            Logic::<DefaultActionQueue>::is_win(board, last_occupied),
+            expected
+        );
     }
 
     #[test]
@@ -269,7 +272,7 @@ mod Logic_single_action {
             vec![Some(Surrender), Some(Occupy(Cell::new(0, 0)))],
         ));
         Logic::new([
-            Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
+            Rc::clone(&act_queue_px) as Rc<VecActionQueue>,
             Rc::new(VecActionQueue::new(state.players[1].id, vec![])),
         ])
         .advance(&mut state);
@@ -292,7 +295,7 @@ mod Logic_multiple_actions {
     use crate::game::Mark::{O, X};
     use crate::game::Phase::{Beginning, Outround};
     use crate::game::{Board, Cell};
-    use crate::{ActionQueue, Logic};
+    use crate::Logic;
     use pretty_assertions_sorted::assert_eq_sorted;
     use std::rc::Rc;
 
@@ -378,8 +381,8 @@ mod Logic_multiple_actions {
             ],
         ));
         let logic = Logic::new([
-            Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
-            Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
+            Rc::clone(&act_queue_px) as Rc<VecActionQueue>,
+            Rc::clone(&act_queue_po) as Rc<VecActionQueue>,
         ]);
         let actions_cnt = act_queue_px.actions.borrow().len() + act_queue_po.actions.borrow().len();
         for _ in 0..actions_cnt {

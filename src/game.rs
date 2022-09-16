@@ -189,13 +189,15 @@ impl ActionQueue for DefaultActionQueue {
 }
 
 #[derive(Debug)]
-pub struct Logic {
-    // TODO use generics instead of a trait object?
-    action_queues: [Rc<dyn ActionQueue>; State::PLAYER_COUNT],
+pub struct Logic<A> {
+    action_queues: [Rc<A>; State::PLAYER_COUNT],
 }
 
-impl Logic {
-    pub fn new(action_queues: [Rc<dyn ActionQueue>; State::PLAYER_COUNT]) -> Self {
+impl<A> Logic<A>
+where
+    A: ActionQueue,
+{
+    pub fn new(action_queues: [Rc<A>; State::PLAYER_COUNT]) -> Self {
         for (idx, action_queue) in action_queues.iter().enumerate() {
             assert_eq!(action_queue.player_id().idx, idx);
         }
@@ -214,11 +216,11 @@ impl Logic {
             let player_id = state.players[i].id;
             if state.required_ready.contains(&player_id) {
                 if let Some(action) = self.action_queues[player_id.idx].pop() {
-                    if Logic::is_game_over(state) {
+                    if Logic::<A>::is_game_over(state) {
                         panic!()
                     }
                     if action == Ready {
-                        Logic::ready(state, player_id);
+                        Logic::<A>::ready(state, player_id);
                     } else {
                         panic!("{:?}, {:?}", player_id, action)
                     }
@@ -230,12 +232,12 @@ impl Logic {
     fn advance_inround(&self, state: &mut State) {
         let player_id = state.turn();
         while let Some(action) = self.action_queues[player_id.idx].pop() {
-            if Logic::is_game_over(state) {
+            if Logic::<A>::is_game_over(state) {
                 panic!()
             }
             match action {
-                Surrender => Logic::surrender(state),
-                Occupy(cell) => Logic::occupy(state, &cell),
+                Surrender => Logic::<A>::surrender(state),
+                Occupy(cell) => Logic::<A>::occupy(state, &cell),
                 Ready => panic!("{:?}, {:?}", player_id, action),
             }
             if state.turn() != player_id || state.phase != Inround {
@@ -272,16 +274,16 @@ impl Logic {
         assert_eq!(State::PLAYER_COUNT, 2);
         let idx_other_player = (state.turn().idx + 1) % state.players.len();
         state.players[idx_other_player].wins += 1;
-        Logic::end_round(state);
+        Logic::<A>::end_round(state);
     }
 
     fn occupy(state: &mut State, cell: &Cell) {
         assert_eq!(state.phase, Inround);
         state.board.set(cell, state.players[state.turn().idx].mark);
-        if Logic::is_win(&state.board, cell) {
-            Logic::win(state);
-        } else if Logic::last_step(state.step, &state.board) {
-            Logic::draw(state);
+        if Logic::<A>::is_win(&state.board, cell) {
+            Logic::<A>::win(state);
+        } else if Logic::<A>::last_step(state.step, &state.board) {
+            Logic::<A>::draw(state);
         } else {
             state.step += 1;
         }
@@ -289,7 +291,7 @@ impl Logic {
 
     fn end_round(state: &mut State) {
         state.phase = Outround;
-        if !Logic::is_game_over(state) {
+        if !Logic::<A>::is_game_over(state) {
             state
                 .required_ready
                 .extend(state.players.iter().map(|p| p.id));
@@ -328,11 +330,11 @@ impl Logic {
 
     fn win(state: &mut State) {
         state.players[state.turn().idx].wins += 1;
-        Logic::end_round(state);
+        Logic::<A>::end_round(state);
     }
 
     fn draw(state: &mut State) {
-        Logic::end_round(state);
+        Logic::<A>::end_round(state);
     }
 
     pub fn is_game_over(state: &State) -> bool {
@@ -341,25 +343,27 @@ impl Logic {
 }
 
 pub trait Ai: Debug {
-    fn act(&self, state: &State);
+    fn act(&mut self, state: &State);
 }
 
 #[derive(Debug)]
-pub struct World {
+pub struct World<A> {
     state: Rc<RefCell<State>>,
-    logic: Logic,
-    // TODO use generics instead of a trait object?
+    logic: Logic<A>,
     ais: Vec<Box<dyn Ai>>,
 }
 
-impl World {
-    pub fn new(state: Rc<RefCell<State>>, logic: Logic, ais: Vec<Box<dyn Ai>>) -> Self {
+impl<A> World<A>
+where
+    A: ActionQueue,
+{
+    pub fn new(state: Rc<RefCell<State>>, logic: Logic<A>, ais: Vec<Box<dyn Ai>>) -> Self {
         Self { state, logic, ais }
     }
 
-    pub fn advance(&self) {
+    pub fn advance(&mut self) {
         let state = &mut *self.state.borrow_mut();
-        for ai in &self.ais {
+        for ai in &mut self.ais {
             ai.act(state);
         }
         self.logic.advance(state);

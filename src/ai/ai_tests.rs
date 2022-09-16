@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 
 mod Random {
-    use crate::{ai, ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
+    use crate::{ai, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
     use ntest::timeout;
     use oorandom::Rand64;
     use std::cell::RefCell;
@@ -29,11 +29,11 @@ mod Random {
             let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
             let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
             let state = Rc::new(RefCell::new(State::new([px, po], State::DEFAULT_ROUNDS)));
-            let world = World::new(
+            let mut world = World::new(
                 Rc::clone(&state),
                 Logic::new([
-                    Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
-                    Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
+                    Rc::clone(&act_queue_px) as Rc<DefaultActionQueue>,
+                    Rc::clone(&act_queue_po) as Rc<DefaultActionQueue>,
                 ]),
                 vec![
                     Box::new(ai::Random::new(px_id, ai_rng_seed_px, act_queue_px)),
@@ -48,7 +48,7 @@ mod Random {
                 world.advance();
             }
             assert!(
-                Logic::is_game_over(&state.borrow()),
+                Logic::<DefaultActionQueue>::is_game_over(&state.borrow()),
                 "RNG seeds {:?}, {:?}",
                 (ai_rng_seed_px, ai_rng_seed_po),
                 &state.borrow()

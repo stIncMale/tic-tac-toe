@@ -26,8 +26,6 @@
     // dead_code,
 )]
 
-extern crate core;
-
 use clap::ErrorKind::{DisplayHelp, DisplayVersion};
 use std::env;
 use std::process::ExitCode;
@@ -39,7 +37,7 @@ mod exit_code {
     pub const INVALID_ARGS: u8 = 2;
 }
 
-/// Panic messages may not be observable because of them being printed to the terminal's
+/// Panic messages may not be observable because of them printed to the terminal's
 /// "alternate screen", see [here](https://github.com/gyscos/cursive/issues/409) for more details.
 /// Redirect stdout to a file in order to see them.
 fn main() -> ExitCode {

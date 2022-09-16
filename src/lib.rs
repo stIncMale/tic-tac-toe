@@ -68,8 +68,8 @@ fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let game_world = World::new(
         Rc::clone(&game_state),
         Logic::new([
-            Rc::clone(&act_queue_px) as Rc<dyn ActionQueue>,
-            Rc::clone(&act_queue_po) as Rc<dyn ActionQueue>,
+            Rc::clone(&act_queue_px) as Rc<DefaultActionQueue>,
+            Rc::clone(&act_queue_po) as Rc<DefaultActionQueue>,
         ]),
         vec![Box::new(ai::Random::new(
             po_id,
@@ -85,13 +85,15 @@ fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn run_tui(
+    // TODO clone game_state from game_world, or maybe borrow immutably (doubtfully)?
     game_state: &Rc<RefCell<State>>,
     action_queue: Option<Rc<DefaultActionQueue>>,
-    game_world: World,
+    game_world: World<DefaultActionQueue>,
 ) -> Result<(), Box<dyn Error>> {
+    let game_world = RefCell::new(game_world);
     let mut tui = Cursive::new();
     tui.add_layer(GameView::new(game_state, action_queue, move || {
-        game_world.advance();
+        game_world.borrow_mut().advance();
     }));
     configure_exit(&mut tui);
     tui.update_theme(|theme| {
