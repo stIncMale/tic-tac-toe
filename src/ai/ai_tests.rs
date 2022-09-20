@@ -20,24 +20,24 @@ mod Random {
                 .as_nanos(),
         );
         for _ in 0..1_000 {
-            let ai_rng_seed_px = rng.rand_u64();
-            let ai_rng_seed_po = rng.rand_u64();
-            let px = Player::new(PlayerId::new(0), Mark::X);
-            let po = Player::new(PlayerId::new(1), Mark::O);
-            let px_id = px.id;
-            let po_id = po.id;
-            let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
-            let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
-            let state = Rc::new(RefCell::new(State::new([px, po], State::DEFAULT_ROUNDS)));
+            let ai_rng_seed_p0 = rng.rand_u64();
+            let ai_rng_seed_p1 = rng.rand_u64();
+            let p0 = Player::new(PlayerId::new(0), Mark::X);
+            let p1 = Player::new(PlayerId::new(1), Mark::O);
+            let p0_id = p0.id;
+            let p1_id = p1.id;
+            let act_queue_p0 = Rc::new(DefaultActionQueue::new(p0_id));
+            let act_queue_p1 = Rc::new(DefaultActionQueue::new(p1_id));
+            let state = Rc::new(RefCell::new(State::new([p0, p1], State::DEFAULT_ROUNDS)));
             let mut world = World::new(
                 Rc::clone(&state),
                 Logic::new([
-                    Rc::clone(&act_queue_px) as Rc<DefaultActionQueue>,
-                    Rc::clone(&act_queue_po) as Rc<DefaultActionQueue>,
+                    Rc::clone(&act_queue_p0) as Rc<DefaultActionQueue>,
+                    Rc::clone(&act_queue_p1) as Rc<DefaultActionQueue>,
                 ]),
                 vec![
-                    Box::new(ai::Random::new(px_id, ai_rng_seed_px, act_queue_px)),
-                    Box::new(ai::Random::new(po_id, ai_rng_seed_po, act_queue_po)),
+                    Box::new(ai::Random::new(p0_id, ai_rng_seed_p0, act_queue_p0)),
+                    Box::new(ai::Random::new(p1_id, ai_rng_seed_p1, act_queue_p1)),
                 ],
             );
             let enough_iterations = {
@@ -50,7 +50,7 @@ mod Random {
             assert!(
                 Logic::<DefaultActionQueue>::is_game_over(&state.borrow()),
                 "RNG seeds {:?}, {:?}",
-                (ai_rng_seed_px, ai_rng_seed_po),
+                (ai_rng_seed_p0, ai_rng_seed_p1),
                 &state.borrow()
             );
         }

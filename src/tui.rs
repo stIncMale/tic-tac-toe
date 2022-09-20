@@ -202,7 +202,8 @@ impl PlayerView {
 
 impl View for PlayerView {
     fn draw(&self, printer: &Printer) {
-        let player = &self.game_state.borrow().players[self.player_id.idx];
+        let game_state = self.game_state.borrow();
+        let player = game_state.player(self.player_id);
         let txt_description = &format!("Player: {}", player.mark);
         let txt_score = &format!("Wins: {}", player.wins);
         let start = Vec2::new(
@@ -289,8 +290,9 @@ impl CellView {
 
 impl View for CellView {
     fn draw(&self, printer: &Printer) {
-        if let Some(mark) = self.game_state.borrow().board.get(&self.cell) {
-            let txt_mark = &format!("{}", mark);
+        let game_state = self.game_state.borrow();
+        if let Some(player_id) = game_state.board.get(&self.cell) {
+            let txt_mark = &format!("{}", game_state.player(player_id).mark);
             printer.print(
                 Vec2::new(
                     HAlign::Center.get_offset(txt_mark.chars().count(), self.size.x),

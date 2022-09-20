@@ -58,26 +58,26 @@ pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
-    let px = Player::new(PlayerId::new(0), Mark::X);
-    let po = Player::new(PlayerId::new(1), Mark::O);
-    let px_id = px.id;
-    let po_id = po.id;
-    let act_queue_px = Rc::new(DefaultActionQueue::new(px_id));
-    let act_queue_po = Rc::new(DefaultActionQueue::new(po_id));
-    let game_state = Rc::new(RefCell::new(State::new([px, po], State::DEFAULT_ROUNDS)));
+    let p0 = Player::new(0.into(), Mark::X);
+    let p1 = Player::new(1.into(), Mark::O);
+    let p0_id = p0.id;
+    let p1_id = p1.id;
+    let act_queue_p0 = Rc::new(DefaultActionQueue::new(p0_id));
+    let act_queue_p1 = Rc::new(DefaultActionQueue::new(p1_id));
+    let game_state = Rc::new(RefCell::new(State::new([p0, p1], State::DEFAULT_ROUNDS)));
     let game_world = World::new(
         Rc::clone(&game_state),
         Logic::new([
-            Rc::clone(&act_queue_px) as Rc<DefaultActionQueue>,
-            Rc::clone(&act_queue_po) as Rc<DefaultActionQueue>,
+            Rc::clone(&act_queue_p0) as Rc<DefaultActionQueue>,
+            Rc::clone(&act_queue_p1) as Rc<DefaultActionQueue>,
         ]),
         vec![Box::new(ai::Random::new(
-            po_id,
+            p1_id,
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
-            act_queue_po,
+            act_queue_p1,
         ))],
     );
-    run_tui(&game_state, Some(act_queue_px), game_world)
+    run_tui(&game_state, Some(act_queue_p0), game_world)
 }
 
 fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {

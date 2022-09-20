@@ -25,12 +25,14 @@ impl Display for Mark {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Player {
+    // TODO replace id, mark with accessors
     pub id: PlayerId,
     pub mark: Mark,
     pub wins: u32,
 }
 
 impl Player {
+    #[must_use]
     pub fn new(id: PlayerId, mark: Mark) -> Self {
         Self { id, mark, wins: 0 }
     }
@@ -42,8 +44,21 @@ pub struct PlayerId {
 }
 
 impl PlayerId {
+    #[must_use]
     pub fn new(idx: usize) -> Self {
         Self { idx }
+    }
+}
+
+impl From<usize> for PlayerId {
+    fn from(idx: usize) -> Self {
+        Self::new(idx)
+    }
+}
+
+impl PartialEq<usize> for PlayerId {
+    fn eq(&self, other: &usize) -> bool {
+        self.idx == *other
     }
 }
 
@@ -67,6 +82,10 @@ pub struct Cell {
 }
 
 impl Cell {
+    /// # Panics
+    ///
+    /// If the either `x` or `y` is greater than or equal to [`Board::SIZE`].
+    #[must_use]
     pub fn new(x: usize, y: usize) -> Self {
         assert!(x < Board::SIZE, "{:?}, {:?}", x, Board::SIZE);
         assert!(y < Board::SIZE, "{:?}, {:?}", y, Board::SIZE);
@@ -76,7 +95,7 @@ impl Cell {
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct Board {
-    cells: [[Option<Mark>; Board::SIZE]; Board::SIZE],
+    cells: [[Option<PlayerId>; Board::SIZE]; Board::SIZE],
 }
 
 impl Board {
@@ -86,12 +105,13 @@ impl Board {
         Self::default()
     }
 
-    fn set(&mut self, cell: &Cell, mark: Mark) {
+    fn set(&mut self, cell: &Cell, player_id: PlayerId) {
         assert_eq!(self.cells[cell.x][cell.y], None);
-        self.cells[cell.x][cell.y] = Option::from(mark);
+        self.cells[cell.x][cell.y] = Option::from(player_id);
     }
 
-    pub fn get(&self, cell: &Cell) -> Option<Mark> {
+    #[must_use]
+    pub fn get(&self, cell: &Cell) -> Option<PlayerId> {
         self.cells[cell.x][cell.y]
     }
 
@@ -103,6 +123,7 @@ impl Board {
         }
     }
 
+    #[must_use]
     pub fn size(&self) -> usize {
         self.cells.len()
     }
@@ -123,9 +144,13 @@ impl State {
     pub const DEFAULT_ROUNDS: u32 = 5;
     const PLAYER_COUNT: usize = 2;
 
+    /// # Panics
+    ///
+    /// If the index of an item in `players` is not equal to the corresponding [`PlayerId`].
+    #[must_use]
     pub fn new(players: [Player; State::PLAYER_COUNT], rounds: u32) -> Self {
         for (idx, player) in players.iter().enumerate() {
-            assert_eq!(player.id.idx, idx);
+            assert_eq!(player.id, idx, "{:?}, {:?}", player, idx);
         }
         let required_ready = players.iter().map(|p| p.id).collect::<HashSet<PlayerId>>();
         Self {
@@ -139,10 +164,16 @@ impl State {
         }
     }
 
+    #[must_use]
     pub fn turn(&self) -> PlayerId {
-        PlayerId::new(
+        PlayerId::from(
             usize::try_from(self.step + self.round).expect("should fit") % self.players.len(),
         )
+    }
+
+    #[must_use]
+    pub fn player(&self, player_id: PlayerId) -> &Player {
+        &self.players[player_id.idx]
     }
 }
 
@@ -166,6 +197,7 @@ pub struct DefaultActionQueue {
 }
 
 impl DefaultActionQueue {
+    #[must_use]
     pub fn new(player_id: PlayerId) -> Self {
         Self {
             player_id,
@@ -197,9 +229,13 @@ impl<A> Logic<A>
 where
     A: ActionQueue,
 {
+    /// # Panics
+    ///
+    /// If the index of an item in `action_queues` is not equal to the corresponding [`PlayerId`].
+    #[must_use]
     pub fn new(action_queues: [Rc<A>; State::PLAYER_COUNT]) -> Self {
         for (idx, action_queue) in action_queues.iter().enumerate() {
-            assert_eq!(action_queue.player_id().idx, idx);
+            assert_eq!(action_queue.player_id(), idx);
         }
         Self { action_queues }
     }
@@ -216,13 +252,17 @@ where
             let player_id = state.players[i].id;
             if state.required_ready.contains(&player_id) {
                 if let Some(action) = self.action_queues[player_id.idx].pop() {
-                    if Logic::<A>::is_game_over(state) {
-                        panic!()
-                    }
+                    assert!(
+                        !Logic::<A>::is_game_over(state),
+                        "{:?}, {:?}, {:?}",
+                        state,
+                        player_id,
+                        action
+                    );
                     if action == Ready {
                         Logic::<A>::ready(state, player_id);
                     } else {
-                        panic!("{:?}, {:?}", player_id, action)
+                        panic!("{:?}, {:?}, {:?}", state, player_id, action)
                     }
                 }
             };
@@ -232,13 +272,16 @@ where
     fn advance_inround(&self, state: &mut State) {
         let player_id = state.turn();
         while let Some(action) = self.action_queues[player_id.idx].pop() {
-            if Logic::<A>::is_game_over(state) {
-                panic!()
-            }
+            assert!(
+                !Logic::<A>::is_game_over(state),
+                "{:?}, {:?}",
+                state,
+                action
+            );
             match action {
                 Surrender => Logic::<A>::surrender(state),
                 Occupy(cell) => Logic::<A>::occupy(state, &cell),
-                Ready => panic!("{:?}, {:?}", player_id, action),
+                Ready => panic!("{:?}, {:?}", state, action),
             }
             if state.turn() != player_id || state.phase != Inround {
                 break;
@@ -250,7 +293,7 @@ where
         assert!(
             state.phase == Beginning || state.phase == Outround,
             "{:?}, {:?}",
-            state.phase,
+            state,
             player_id
         );
         state.required_ready.remove(&player_id);
@@ -262,7 +305,7 @@ where
                     state.round += 1;
                     state.board.clear();
                 }
-                Inround => panic!(),
+                Inround => panic!("{:?}, {:?}", state, player_id),
             }
             state.phase = Inround;
         }
@@ -279,7 +322,7 @@ where
 
     fn occupy(state: &mut State, cell: &Cell) {
         assert_eq!(state.phase, Inround);
-        state.board.set(cell, state.players[state.turn().idx].mark);
+        state.board.set(cell, state.turn());
         if Logic::<A>::is_win(&state.board, cell) {
             Logic::<A>::win(state);
         } else if Logic::<A>::last_step(state.step, &state.board) {
@@ -337,6 +380,7 @@ where
         Logic::<A>::end_round(state);
     }
 
+    #[must_use]
     pub fn is_game_over(state: &State) -> bool {
         state.round == state.rounds - 1 && state.phase == Outround
     }
