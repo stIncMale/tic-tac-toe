@@ -1,7 +1,7 @@
 use crate::game::{Action, Cell, Phase};
 use crate::{
     ActionQueue, Cursive, DefaultActionQueue, Event, EventResult, LinearLayout, Logic, PlayerId,
-    Printer, State,
+    Printer, State, World,
 };
 use cursive::align::HAlign;
 use cursive::direction::Direction;
@@ -15,64 +15,67 @@ use std::cmp;
 use std::ops::Add;
 use std::rc::Rc;
 
-pub struct GameView<F> {
+type GameWorld = Rc<RefCell<World<DefaultActionQueue>>>;
+
+pub struct GameView {
+    game_world: GameWorld,
     // TODO remove unused, pass a map?
     _action_queue: Option<Rc<DefaultActionQueue>>,
-    on_loop_iteration: F,
     layout: LinearLayout,
 }
 
-impl<F> GameView<F>
-where
-    F: Fn() + 'static,
-{
+impl GameView {
     pub fn new(
-        game_state: &Rc<RefCell<State>>,
+        game_world: World<DefaultActionQueue>,
         action_queue: Option<Rc<DefaultActionQueue>>,
-        on_loop_iteration: F,
     ) -> Self {
+        let game_world = Rc::new(RefCell::new(game_world));
         let layout = {
-            let game_board_layout = GameView::<F>::game_board_layout(game_state, &action_queue);
-            let players = &game_state.borrow().players;
+            let game_world_ref = game_world.borrow();
+            let game_state = game_world_ref.state();
+            let game_board_layout = GameView::game_board_layout(&game_world, &action_queue);
+            let players = &game_state.players;
             // for more players this method would have been implemented quite differently
             assert_eq!(players.len(), 2);
             let players_and_board_layout = LinearLayout::horizontal()
                 .child(Panel::new(PlayerView::new(
                     players[0].id,
-                    Rc::clone(game_state),
+                    Rc::clone(&game_world),
                 )))
                 .child(game_board_layout)
                 .child(Panel::new(PlayerView::new(
                     players[1].id,
-                    Rc::clone(game_state),
+                    Rc::clone(&game_world),
                 )));
             LinearLayout::vertical()
-                .child(Panel::new(GameInfoView::new(Rc::clone(game_state))))
+                .child(Panel::new(GameInfoView::new(Rc::clone(&game_world))))
                 .child(players_and_board_layout)
                 .child(Panel::new(GameControlsView::new(
-                    Rc::clone(game_state),
+                    Rc::clone(&game_world),
                     action_queue.as_ref().map(Rc::clone).or(None),
                 )))
         };
         Self {
+            game_world,
             _action_queue: action_queue,
-            on_loop_iteration,
             layout,
         }
     }
 
     fn game_board_layout(
-        game_state: &Rc<RefCell<State>>,
+        game_world: &GameWorld,
         action_queue: &Option<Rc<DefaultActionQueue>>,
     ) -> LinearLayout {
-        let board_size = game_state.borrow().board.size();
+        let game_world_ref = game_world.borrow();
+        let game_state = game_world_ref.state();
+        let board_size = game_state.board.size();
         let mut game_board_layout = LinearLayout::vertical();
         for x in 0..board_size {
             let mut column = LinearLayout::horizontal();
             for y in 0..board_size {
                 column.add_child(Panel::new(CellView::new(
                     Cell::new(x, y),
-                    Rc::clone(game_state),
+                    Rc::clone(game_world),
                     action_queue.as_ref().map(Rc::clone).or(None),
                 )));
             }
@@ -82,12 +85,9 @@ where
     }
 }
 
-impl<F> View for GameView<F>
-where
-    F: Fn() + 'static,
-{
+impl View for GameView {
     fn draw(&self, printer: &Printer) {
-        (self.on_loop_iteration)();
+        self.game_world.borrow_mut().advance();
         self.layout.draw(printer);
     }
 
@@ -126,14 +126,14 @@ where
 
 #[derive(Debug)]
 struct GameInfoView {
-    game_state: Rc<RefCell<State>>,
+    game_world: GameWorld,
     size: Vec2,
 }
 
 impl GameInfoView {
-    fn new(game_state: Rc<RefCell<State>>) -> Self {
+    fn new(game_world: GameWorld) -> Self {
         Self {
-            game_state,
+            game_world,
             size: Vec2::default(),
         }
     }
@@ -141,7 +141,8 @@ impl GameInfoView {
 
 impl View for GameInfoView {
     fn draw(&self, printer: &Printer) {
-        let game_state = &*self.game_state.borrow();
+        let game_world = self.game_world.borrow();
+        let game_state = game_world.state();
         let txt_round = &format!("Round {}/{}", game_state.round + 1, game_state.rounds);
         printer.print(
             Vec2::new(
@@ -186,15 +187,15 @@ impl View for GameInfoView {
 #[derive(Debug)]
 struct PlayerView {
     player_id: PlayerId,
-    game_state: Rc<RefCell<State>>,
+    game_world: GameWorld,
     size: Vec2,
 }
 
 impl PlayerView {
-    fn new(player_id: PlayerId, game_state: Rc<RefCell<State>>) -> Self {
+    fn new(player_id: PlayerId, game_world: GameWorld) -> Self {
         Self {
             player_id,
-            game_state,
+            game_world,
             size: Vec2::default(),
         }
     }
@@ -202,9 +203,10 @@ impl PlayerView {
 
 impl View for PlayerView {
     fn draw(&self, printer: &Printer) {
-        let game_state = self.game_state.borrow();
-        let player = game_state.player(self.player_id);
-        let txt_description = &format!("Player: {}", player.mark);
+        let game_world = self.game_world.borrow();
+        let game_state = game_world.state();
+        let player = &game_state.players[self.player_id.idx];
+        let txt_description = &format!("Player: {}", player.mark());
         let txt_score = &format!("Wins: {}", player.wins);
         let start = Vec2::new(
             HAlign::Center.get_offset(
@@ -251,7 +253,7 @@ impl View for PlayerView {
 #[derive(Debug)]
 struct CellView {
     cell: Cell,
-    game_state: Rc<RefCell<State>>,
+    game_world: GameWorld,
     action_queue: Option<Rc<DefaultActionQueue>>,
     size: Vec2,
 }
@@ -259,12 +261,12 @@ struct CellView {
 impl CellView {
     fn new(
         cell: Cell,
-        game_state: Rc<RefCell<State>>,
+        game_world: GameWorld,
         action_queue: Option<Rc<DefaultActionQueue>>,
     ) -> Self {
         Self {
             cell,
-            game_state,
+            game_world,
             action_queue,
             size: Vec2::default(),
         }
@@ -272,7 +274,8 @@ impl CellView {
 
     fn on_mouse_press_left(&self) -> EventResult {
         if let Some(action_queue) = &self.action_queue {
-            let game_state = &*self.game_state.borrow();
+            let game_world = self.game_world.borrow();
+            let game_state = game_world.state();
             if game_state.phase == Phase::Inround
                 && game_state.turn() == action_queue.player_id()
                 && game_state.board.get(&self.cell) == None
@@ -290,9 +293,10 @@ impl CellView {
 
 impl View for CellView {
     fn draw(&self, printer: &Printer) {
-        let game_state = self.game_state.borrow();
+        let game_world = self.game_world.borrow();
+        let game_state = game_world.state();
         if let Some(player_id) = game_state.board.get(&self.cell) {
-            let txt_mark = &format!("{}", game_state.player(player_id).mark);
+            let txt_mark = &format!("{}", game_state.players[player_id.idx].mark());
             printer.print(
                 Vec2::new(
                     HAlign::Center.get_offset(txt_mark.chars().count(), self.size.x),
@@ -336,7 +340,7 @@ impl View for CellView {
         // take focus only from mouse of programmatically
         if source == Direction::none()
             && !GameControlsView::needs_go(
-                &*self.game_state.borrow(),
+                self.game_world.borrow().state(),
                 self.action_queue.as_ref().map(|aq| aq.player_id()),
             )
         {
@@ -352,7 +356,7 @@ impl View for CellView {
 }
 
 struct GameControlsView {
-    game_state: Rc<RefCell<State>>,
+    game_world: GameWorld,
     interacting_player_id: Option<PlayerId>,
     layout: LinearLayout,
     go_btn_visible: bool,
@@ -367,7 +371,7 @@ impl GameControlsView {
     const GO_BTN_ID: &'static str = "GO_BTN_ID";
     const SURRENDER_BTN_ID: &'static str = "SURRENDER_BTN_ID";
 
-    fn new(game_state: Rc<RefCell<State>>, action_queue: Option<Rc<DefaultActionQueue>>) -> Self {
+    fn new(game_world: GameWorld, action_queue: Option<Rc<DefaultActionQueue>>) -> Self {
         let mut layout = LinearLayout::horizontal();
         if let Some(action_queue) = &action_queue {
             let go_btn = {
@@ -400,7 +404,7 @@ impl GameControlsView {
             .child(layout)
             .child(ResizedView::with_full_width(DummyView {}));
         Self {
-            game_state,
+            game_world,
             interacting_player_id: action_queue.map(|action_queue| action_queue.player_id()),
             layout: centing_layout,
             go_btn_visible: false,
@@ -437,8 +441,7 @@ impl GameControlsView {
                 cb(tui);
                 assert!(tui
                     .focus_name(GameControlsView::FOCUS_HOLDER_ID)
-                    // TODO replace with `expect`
-                    .unwrap()
+                    .expect("exists")
                     .is_consumed());
                 tui.call_on_name(&id, |btn: &mut HideableView<Button>| {
                     btn.hide();
@@ -463,8 +466,7 @@ impl GameControlsView {
                 cb(tui);
                 assert!(tui
                     .focus_name(GameControlsView::FOCUS_HOLDER_ID)
-                    // TODO replace with `expect`
-                    .unwrap()
+                    .expect("exists")
                     .is_consumed());
                 tui.call_on_name(&id, |btn: &mut Button| {
                     btn.disable();
@@ -482,7 +484,8 @@ impl View for GameControlsView {
     }
 
     fn layout(&mut self, view_size: Vec2) {
-        let game_state = &self.game_state.borrow();
+        let game_world = self.game_world.borrow();
+        let game_state = game_world.state();
         {
             // handle GO_BTN_ID
             let need_go_confirmation =
@@ -491,7 +494,7 @@ impl View for GameControlsView {
             self.go_btn_visible = self
                 .layout
                 .find_name::<HideableView<Button>>(GameControlsView::GO_BTN_ID)
-                .unwrap()
+                .expect("exists")
                 .is_visible();
             if switch_go_btn_visible {
                 self.layout.call_on_name(
@@ -514,7 +517,7 @@ impl View for GameControlsView {
             self.surrender_btn_visible = self
                 .layout
                 .find_name::<HideableView<Button>>(GameControlsView::SURRENDER_BTN_ID)
-                .unwrap()
+                .expect("exists")
                 .is_visible();
             if switch_surrender_btn_visible {
                 self.layout.call_on_name(

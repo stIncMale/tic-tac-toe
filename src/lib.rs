@@ -27,7 +27,7 @@
 )]
 
 use crate::cli::ParsedArgs;
-use crate::game::{ActionQueue, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
+use crate::game::{ActionQueue, DefaultActionQueue, Logic, Player, PlayerId, State, World};
 use crate::tui::GameView;
 use crate::ParsedArgs::{Dedicated, Interactive};
 use cursive::event::{Event, EventResult, Key};
@@ -36,7 +36,6 @@ use cursive::theme::{BaseColor, BorderStyle, PaletteColor};
 use cursive::traits::Nameable;
 use cursive::views::{Dialog, LinearLayout};
 use cursive::{Cursive, Printer};
-use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -58,26 +57,22 @@ pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
-    let p0 = Player::new(0.into(), Mark::X);
-    let p1 = Player::new(1.into(), Mark::O);
+    let p0 = Player::new(0.into());
+    let p1 = Player::new(1.into());
     let p0_id = p0.id;
     let p1_id = p1.id;
     let act_queue_p0 = Rc::new(DefaultActionQueue::new(p0_id));
     let act_queue_p1 = Rc::new(DefaultActionQueue::new(p1_id));
-    let game_state = Rc::new(RefCell::new(State::new([p0, p1], State::DEFAULT_ROUNDS)));
     let game_world = World::new(
-        Rc::clone(&game_state),
-        Logic::new([
-            Rc::clone(&act_queue_p0) as Rc<DefaultActionQueue>,
-            Rc::clone(&act_queue_p1) as Rc<DefaultActionQueue>,
-        ]),
+        State::new([p0, p1], State::DEFAULT_ROUNDS),
+        Logic::new([Rc::clone(&act_queue_p0), Rc::clone(&act_queue_p1)]),
         vec![Box::new(ai::Random::new(
             p1_id,
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
             act_queue_p1,
         ))],
     );
-    run_tui(&game_state, Some(act_queue_p0), game_world)
+    run_tui(game_world, Some(act_queue_p0))
 }
 
 fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
@@ -85,16 +80,11 @@ fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn run_tui(
-    // TODO clone game_state from game_world, or maybe borrow immutably (doubtfully)?
-    game_state: &Rc<RefCell<State>>,
-    action_queue: Option<Rc<DefaultActionQueue>>,
     game_world: World<DefaultActionQueue>,
+    action_queue: Option<Rc<DefaultActionQueue>>,
 ) -> Result<(), Box<dyn Error>> {
-    let game_world = RefCell::new(game_world);
     let mut tui = Cursive::new();
-    tui.add_layer(GameView::new(game_state, action_queue, move || {
-        game_world.borrow_mut().advance();
-    }));
+    tui.add_layer(GameView::new(game_world, action_queue));
     configure_exit(&mut tui);
     tui.update_theme(|theme| {
         theme.shadow = true;

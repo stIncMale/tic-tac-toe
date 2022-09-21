@@ -3,7 +3,6 @@
 
 use crate::game::Phase::Inround;
 use crate::game::{Action, ActionQueue, Board};
-use crate::Mark::{O, X};
 use crate::{Player, PlayerId, State};
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -481,10 +480,7 @@ impl ActionQueue for VecActionQueue {
 fn state_with_board(board: Board) -> State {
     State {
         board,
-        players: [
-            Player::new(PlayerId::new(0), X),
-            Player::new(PlayerId::new(1), O),
-        ],
+        players: [Player::new(PlayerId::new(0)), Player::new(PlayerId::new(1))],
         phase: Inround,
         rounds: State::DEFAULT_ROUNDS,
         round: 0,

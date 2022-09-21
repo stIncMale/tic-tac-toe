@@ -2,10 +2,9 @@
 #![allow(non_snake_case)]
 
 mod Random {
-    use crate::{ai, DefaultActionQueue, Logic, Mark, Player, PlayerId, State, World};
+    use crate::{ai, DefaultActionQueue, Logic, Player, PlayerId, State, World};
     use ntest::timeout;
     use oorandom::Rand64;
-    use std::cell::RefCell;
     use std::panic;
     use std::rc::Rc;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -22,15 +21,14 @@ mod Random {
         for _ in 0..1_000 {
             let ai_rng_seed_p0 = rng.rand_u64();
             let ai_rng_seed_p1 = rng.rand_u64();
-            let p0 = Player::new(PlayerId::new(0), Mark::X);
-            let p1 = Player::new(PlayerId::new(1), Mark::O);
+            let p0 = Player::new(PlayerId::new(0));
+            let p1 = Player::new(PlayerId::new(1));
             let p0_id = p0.id;
             let p1_id = p1.id;
             let act_queue_p0 = Rc::new(DefaultActionQueue::new(p0_id));
             let act_queue_p1 = Rc::new(DefaultActionQueue::new(p1_id));
-            let state = Rc::new(RefCell::new(State::new([p0, p1], State::DEFAULT_ROUNDS)));
             let mut world = World::new(
-                Rc::clone(&state),
+                State::new([p0, p1], State::DEFAULT_ROUNDS),
                 Logic::new([
                     Rc::clone(&act_queue_p0) as Rc<DefaultActionQueue>,
                     Rc::clone(&act_queue_p1) as Rc<DefaultActionQueue>,
@@ -41,17 +39,17 @@ mod Random {
                 ],
             );
             let enough_iterations = {
-                let state = state.borrow();
+                let state = world.state();
                 u32::try_from(state.board.size().pow(2) + 1).unwrap() * state.rounds
             };
             for _ in 0..enough_iterations {
                 world.advance();
             }
             assert!(
-                Logic::<DefaultActionQueue>::is_game_over(&state.borrow()),
+                Logic::<DefaultActionQueue>::is_game_over(world.state()),
                 "RNG seeds {:?}, {:?}",
                 (ai_rng_seed_p0, ai_rng_seed_p1),
-                &state.borrow()
+                world
             );
         }
     }

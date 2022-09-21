@@ -25,16 +25,21 @@ impl Display for Mark {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Player {
-    // TODO replace id, mark with accessors
     pub id: PlayerId,
-    pub mark: Mark,
     pub wins: u32,
 }
 
 impl Player {
-    #[must_use]
-    pub fn new(id: PlayerId, mark: Mark) -> Self {
-        Self { id, mark, wins: 0 }
+    pub fn new(id: PlayerId) -> Self {
+        Self { id, wins: 0 }
+    }
+
+    pub fn mark(&self) -> Mark {
+        match self.id.idx {
+            0 => Mark::X,
+            1 => Mark::O,
+            _ => panic!("{:?}", self.id),
+        }
     }
 }
 
@@ -44,8 +49,8 @@ pub struct PlayerId {
 }
 
 impl PlayerId {
-    #[must_use]
     pub fn new(idx: usize) -> Self {
+        assert!(idx < State::PLAYER_COUNT, "{:?}", idx);
         Self { idx }
     }
 }
@@ -85,7 +90,6 @@ impl Cell {
     /// # Panics
     ///
     /// If the either `x` or `y` is greater than or equal to [`Board::SIZE`].
-    #[must_use]
     pub fn new(x: usize, y: usize) -> Self {
         assert!(x < Board::SIZE, "{:?}, {:?}", x, Board::SIZE);
         assert!(y < Board::SIZE, "{:?}, {:?}", y, Board::SIZE);
@@ -110,7 +114,6 @@ impl Board {
         self.cells[cell.x][cell.y] = Option::from(player_id);
     }
 
-    #[must_use]
     pub fn get(&self, cell: &Cell) -> Option<PlayerId> {
         self.cells[cell.x][cell.y]
     }
@@ -123,7 +126,6 @@ impl Board {
         }
     }
 
-    #[must_use]
     pub fn size(&self) -> usize {
         self.cells.len()
     }
@@ -147,7 +149,6 @@ impl State {
     /// # Panics
     ///
     /// If the index of an item in `players` is not equal to the corresponding [`PlayerId`].
-    #[must_use]
     pub fn new(players: [Player; State::PLAYER_COUNT], rounds: u32) -> Self {
         for (idx, player) in players.iter().enumerate() {
             assert_eq!(player.id, idx, "{:?}, {:?}", player, idx);
@@ -164,16 +165,10 @@ impl State {
         }
     }
 
-    #[must_use]
     pub fn turn(&self) -> PlayerId {
         PlayerId::from(
             usize::try_from(self.step + self.round).expect("should fit") % self.players.len(),
         )
-    }
-
-    #[must_use]
-    pub fn player(&self, player_id: PlayerId) -> &Player {
-        &self.players[player_id.idx]
     }
 }
 
@@ -197,7 +192,6 @@ pub struct DefaultActionQueue {
 }
 
 impl DefaultActionQueue {
-    #[must_use]
     pub fn new(player_id: PlayerId) -> Self {
         Self {
             player_id,
@@ -232,7 +226,6 @@ where
     /// # Panics
     ///
     /// If the index of an item in `action_queues` is not equal to the corresponding [`PlayerId`].
-    #[must_use]
     pub fn new(action_queues: [Rc<A>; State::PLAYER_COUNT]) -> Self {
         for (idx, action_queue) in action_queues.iter().enumerate() {
             assert_eq!(action_queue.player_id(), idx);
@@ -380,7 +373,6 @@ where
         Logic::<A>::end_round(state);
     }
 
-    #[must_use]
     pub fn is_game_over(state: &State) -> bool {
         state.round == state.rounds - 1 && state.phase == Outround
     }
@@ -392,7 +384,7 @@ pub trait Ai: Debug {
 
 #[derive(Debug)]
 pub struct World<A> {
-    state: Rc<RefCell<State>>,
+    state: State,
     logic: Logic<A>,
     ais: Vec<Box<dyn Ai>>,
 }
@@ -401,15 +393,18 @@ impl<A> World<A>
 where
     A: ActionQueue,
 {
-    pub fn new(state: Rc<RefCell<State>>, logic: Logic<A>, ais: Vec<Box<dyn Ai>>) -> Self {
+    pub fn new(state: State, logic: Logic<A>, ais: Vec<Box<dyn Ai>>) -> Self {
         Self { state, logic, ais }
     }
 
     pub fn advance(&mut self) {
-        let state = &mut *self.state.borrow_mut();
         for ai in &mut self.ais {
-            ai.act(state);
+            ai.act(&self.state);
         }
-        self.logic.advance(state);
+        self.logic.advance(&mut self.state);
+    }
+
+    pub fn state(&self) -> &State {
+        &self.state
     }
 }
