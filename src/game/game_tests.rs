@@ -4,7 +4,7 @@
 use crate::game::Phase::Inround;
 use crate::game::{Action, ActionQueue, Board};
 use crate::{Player, PlayerId, State};
-use std::cell::RefCell;
+use core::cell::RefCell;
 use std::collections::HashSet;
 
 mod Logic_single_action {
@@ -13,9 +13,9 @@ mod Logic_single_action {
     use crate::game::Phase::{Beginning, Inround, Outround};
     use crate::game::{ActionQueue, Board, Cell};
     use crate::{DefaultActionQueue, Logic, PlayerId};
+    use alloc::rc::Rc;
     use pretty_assertions_sorted::{assert_eq, assert_eq_sorted};
     use std::collections::HashSet;
-    use std::rc::Rc;
     use test_case::test_case;
 
     #[test]
@@ -323,8 +323,8 @@ mod Logic_multiple_actions {
     use crate::game::Phase::{Beginning, Outround};
     use crate::game::{Board, Cell};
     use crate::{Logic, PlayerId};
+    use alloc::rc::Rc;
     use pretty_assertions_sorted::assert_eq_sorted;
-    use std::rc::Rc;
 
     #[test]
     fn win() {

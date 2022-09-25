@@ -2,13 +2,13 @@
 name = "tic-tac-toe"
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.64.0"
 authors = ["Valentin Kovalenko <https://www.kovalenko.link>"]
 description = "A multiplayer turn-based game."
-license = "WTFPL <http://www.wtfpl.net>"
+readme = "readme.md"
+license = "WTFPL"
 homepage = "https://github.com/stIncMale/tic-tac-toe"
 repository = "https://github.com/stIncMale/tic-tac-toe"
-readme = "readme.md"
 keywords = ["tui"]
 categories = ["command-line-utilities", "games"]
 

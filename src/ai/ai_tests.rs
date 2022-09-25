@@ -3,10 +3,10 @@
 
 mod Random {
     use crate::{ai, DefaultActionQueue, Logic, Player, PlayerId, State, World};
+    use alloc::rc::Rc;
     use ntest::timeout;
     use oorandom::Rand64;
     use std::panic;
-    use std::rc::Rc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]

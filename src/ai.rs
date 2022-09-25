@@ -2,8 +2,8 @@ use crate::game::Action::Ready;
 use crate::game::Phase::{Beginning, Inround, Outround};
 use crate::game::{Action, Ai, Cell};
 use crate::{DefaultActionQueue, PlayerId, State};
+use alloc::rc::Rc;
 use oorandom::Rand32;
-use std::rc::Rc;
 
 mod ai_tests;
 

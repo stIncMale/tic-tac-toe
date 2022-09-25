@@ -3,6 +3,10 @@ use crate::{
     ActionQueue, Cursive, DefaultActionQueue, Event, EventResult, LinearLayout, Logic, PlayerId,
     Printer, State, World,
 };
+use alloc::rc::Rc;
+use core::cell::RefCell;
+use core::cmp;
+use core::ops::Add;
 use cursive::align::HAlign;
 use cursive::direction::Direction;
 use cursive::event::{AnyCb, MouseButton, MouseEvent};
@@ -10,10 +14,6 @@ use cursive::traits::{Finder, Nameable, View};
 use cursive::view::{CannotFocus, Selector, ViewNotFound};
 use cursive::views::{Button, DummyView, HideableView, NamedView, Panel, ResizedView};
 use cursive::{Rect, Vec2};
-use std::cell::RefCell;
-use std::cmp;
-use std::ops::Add;
-use std::rc::Rc;
 
 type GameWorld = Rc<RefCell<World<DefaultActionQueue>>>;
 

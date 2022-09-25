@@ -7,12 +7,11 @@
     clippy::perf,
     clippy::pedantic,
     clippy::cargo,
-    // TODO uncomment in Clippy 1.64
-    // clippy::std_instead_of_core,
-    // clippy::std_instead_of_alloc,
-    // clippy::alloc_instead_of_core,
+    clippy::std_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::alloc_instead_of_core,
     rustdoc::invalid_codeblock_attributes,
-    rustdoc::invalid_html_tags,
+    rustdoc::invalid_html_tags
 )]
 #![allow(
     clippy::similar_names,
@@ -26,10 +25,13 @@
     // dead_code,
 )]
 
+extern crate alloc;
+
 use crate::cli::ParsedArgs;
 use crate::game::{ActionQueue, DefaultActionQueue, Logic, Player, PlayerId, State, World};
 use crate::tui::GameView;
 use crate::ParsedArgs::{Dedicated, Interactive};
+use alloc::rc::Rc;
 use cursive::event::{Event, EventResult, Key};
 use cursive::theme::Color;
 use cursive::theme::{BaseColor, BorderStyle, PaletteColor};
@@ -37,7 +39,6 @@ use cursive::traits::Nameable;
 use cursive::views::{Dialog, LinearLayout};
 use cursive::{Cursive, Printer};
 use std::error::Error;
-use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 mod ai;

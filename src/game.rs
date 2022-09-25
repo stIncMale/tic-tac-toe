@@ -1,9 +1,12 @@
+extern crate alloc;
+
 use crate::game::Action::{Occupy, Ready, Surrender};
 use crate::game::Phase::{Beginning, Inround, Outround};
-use std::cell::RefCell;
-use std::collections::{HashSet, VecDeque};
-use std::fmt::{Debug, Display, Formatter};
-use std::rc::Rc;
+use alloc::collections::VecDeque;
+use alloc::rc::Rc;
+use core::cell::RefCell;
+use core::fmt::{Debug, Display, Formatter, Result};
+use std::collections::HashSet;
 
 mod game_tests;
 
@@ -14,7 +17,7 @@ pub enum Mark {
 }
 
 impl Display for Mark {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         let mark = match self {
             Mark::X => "X",
             Mark::O => "O",

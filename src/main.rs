@@ -7,12 +7,11 @@
     clippy::perf,
     clippy::pedantic,
     clippy::cargo,
-    // TODO uncomment in Clippy 1.64
-    // clippy::std_instead_of_core,
-    // clippy::std_instead_of_alloc,
-    // clippy::alloc_instead_of_core,
+    clippy::std_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::alloc_instead_of_core,
     rustdoc::invalid_codeblock_attributes,
-    rustdoc::invalid_html_tags,
+    rustdoc::invalid_html_tags
 )]
 #![allow(
     clippy::similar_names,
