@@ -25,20 +25,16 @@
     // dead_code,
 )]
 
+use std::{env, process::ExitCode};
+
 use clap::ErrorKind::{DisplayHelp, DisplayVersion};
-use std::env;
-use std::process::ExitCode;
-use tic_tac_toe_lib::cli::ParsedArgs;
-use tic_tac_toe_lib::run;
+use tic_tac_toe_lib::{cli::ParsedArgs, run};
 
 /// Exit codes complementing the canonical ones in [`ExitCode`](std::process::ExitCode).
 mod exit_code {
     pub const INVALID_ARGS: u8 = 2;
 }
 
-/// Panic messages may not be observable because of them printed to the terminal's
-/// "alternate screen", see [here](https://github.com/gyscos/cursive/issues/409) for more details.
-/// Redirect stdout to a file in order to see them.
 fn main() -> ExitCode {
     match ParsedArgs::from_iterator(env::args_os()) {
         Ok(parsed_args) => {

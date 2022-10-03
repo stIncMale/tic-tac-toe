@@ -1,12 +1,17 @@
 extern crate alloc;
 
-use crate::game::Action::{Occupy, Ready, Surrender};
-use crate::game::Phase::{Beginning, Inround, Outround};
-use alloc::collections::VecDeque;
-use alloc::rc::Rc;
-use core::cell::RefCell;
-use core::fmt::{Debug, Display, Formatter, Result};
+use alloc::{collections::VecDeque, rc::Rc};
+use core::{
+    cell::RefCell,
+    fmt::{Debug, Display, Formatter, Result},
+};
 use std::collections::HashSet;
+
+use crate::game::{
+    Action::{Occupy, Ready, Surrender},
+    Phase::{Beginning, Inround, Outround},
+    PlayerType::{Local, _Remote},
+};
 
 mod game_tests;
 
@@ -18,23 +23,23 @@ pub enum Mark {
 
 impl Display for Mark {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        let mark = match self {
+        f.write_str(match self {
             Mark::X => "X",
             Mark::O => "O",
-        };
-        write!(f, "{}", mark)
+        })
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Player {
     pub id: PlayerId,
+    pub typ: PlayerType,
     pub wins: u32,
 }
 
 impl Player {
-    pub fn new(id: PlayerId) -> Self {
-        Self { id, wins: 0 }
+    pub fn new(id: PlayerId, typ: PlayerType) -> Self {
+        Self { id, typ, wins: 0 }
     }
 
     pub fn mark(&self) -> Mark {
@@ -43,6 +48,12 @@ impl Player {
             1 => Mark::O,
             _ => panic!("{:?}", self.id),
         }
+    }
+}
+
+impl Display for Player {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}: {}", self.mark(), self.typ)
     }
 }
 
@@ -68,6 +79,30 @@ impl PartialEq<usize> for PlayerId {
     fn eq(&self, other: &usize) -> bool {
         self.idx == *other
     }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+pub enum PlayerType {
+    Local(LocalPlayerType),
+    _Remote,
+}
+
+impl Display for PlayerType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.write_str(match self {
+            Local(subtype) => match subtype {
+                LocalPlayerType::Human => "local player",
+                LocalPlayerType::Ai => "bot",
+            },
+            _Remote => "remote player",
+        })
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+pub enum LocalPlayerType {
+    Human,
+    Ai,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -147,7 +182,7 @@ pub struct State {
 
 impl State {
     pub const DEFAULT_ROUNDS: u32 = 5;
-    const PLAYER_COUNT: usize = 2;
+    pub const PLAYER_COUNT: usize = 2;
 
     /// # Panics
     ///
@@ -188,6 +223,9 @@ pub trait ActionQueue: Debug {
     fn pop(&self) -> Option<Action>;
 }
 
+/// Instances of this struct need to be "owned" via [`Rc`]
+/// by both the [`World`] and components that produce [`Action`]s.
+/// TODO is interior mutability needed?
 #[derive(Debug)]
 pub struct DefaultActionQueue {
     player_id: PlayerId,
@@ -308,9 +346,12 @@ where
     }
 
     fn surrender(state: &mut State) {
+        assert_eq!(
+            State::PLAYER_COUNT,
+            2,
+            "for more players this method would have been implemented quite differently"
+        );
         assert_eq!(state.phase, Inround);
-        // for more players this method would have been implemented quite differently
-        assert_eq!(State::PLAYER_COUNT, 2);
         let idx_other_player = (state.turn().idx + 1) % state.players.len();
         state.players[idx_other_player].wins += 1;
         Logic::<A>::end_round(state);
@@ -337,6 +378,8 @@ where
         }
     }
 
+    // TODO instead return Option<(Cell, Cell)> specifying the winning line
+    // Then use it in TUI for fighlighting
     fn is_win(board: &Board, last_occupied: &Cell) -> bool {
         let mut h_match = 0;
         let mut v_match = 0;
@@ -382,6 +425,8 @@ where
 }
 
 pub trait Ai: Debug {
+    fn player_id(&self) -> PlayerId;
+
     fn act(&mut self, state: &State);
 }
 
@@ -397,6 +442,13 @@ where
     A: ActionQueue,
 {
     pub fn new(state: State, logic: Logic<A>, ais: Vec<Box<dyn Ai>>) -> Self {
+        assert!(
+            !ais.iter()
+                .any(|ai| state.players[ai.player_id().idx].typ != Local(LocalPlayerType::Ai)),
+            "{:?}, {:?}",
+            state,
+            ais
+        );
         Self { state, logic, ais }
     }
 

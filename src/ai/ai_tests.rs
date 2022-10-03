@@ -2,12 +2,16 @@
 #![allow(non_snake_case)]
 
 mod Random {
-    use crate::{ai, DefaultActionQueue, Logic, Player, PlayerId, State, World};
     use alloc::rc::Rc;
+    use std::{
+        panic,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
     use ntest::timeout;
     use oorandom::Rand64;
-    use std::panic;
-    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use crate::{ai, Ai, DefaultActionQueue, Local, Logic, Player, PlayerId, State, World};
 
     #[test]
     #[timeout(100)]
@@ -21,8 +25,8 @@ mod Random {
         for _ in 0..1_000 {
             let ai_rng_seed_p0 = rng.rand_u64();
             let ai_rng_seed_p1 = rng.rand_u64();
-            let p0 = Player::new(PlayerId::new(0));
-            let p1 = Player::new(PlayerId::new(1));
+            let p0 = Player::new(PlayerId::new(0), Local(Ai));
+            let p1 = Player::new(PlayerId::new(1), Local(Ai));
             let p0_id = p0.id;
             let p1_id = p1.id;
             let act_queue_p0 = Rc::new(DefaultActionQueue::new(p0_id));
@@ -34,8 +38,8 @@ mod Random {
                     Rc::clone(&act_queue_p1) as Rc<DefaultActionQueue>,
                 ]),
                 vec![
-                    Box::new(ai::Random::new(p0_id, ai_rng_seed_p0, act_queue_p0)),
-                    Box::new(ai::Random::new(p1_id, ai_rng_seed_p1, act_queue_p1)),
+                    Box::new(ai::Random::new(ai_rng_seed_p0, act_queue_p0)),
+                    Box::new(ai::Random::new(ai_rng_seed_p1, act_queue_p1)),
                 ],
             );
             let enough_iterations = {

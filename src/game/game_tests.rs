@@ -1,22 +1,30 @@
 #![cfg(test)]
 #![allow(non_snake_case)]
 
-use crate::game::Phase::Inround;
-use crate::game::{Action, ActionQueue, Board};
-use crate::{Player, PlayerId, State};
 use core::cell::RefCell;
 use std::collections::HashSet;
 
+use crate::{
+    game::{Action, ActionQueue, Board, Phase::Inround},
+    Human, Local, Player, PlayerId, State,
+};
+
 mod Logic_single_action {
-    use crate::game::game_tests::{required_ready_from_players, state_with_board, VecActionQueue};
-    use crate::game::Action::{Occupy, Ready, Surrender};
-    use crate::game::Phase::{Beginning, Inround, Outround};
-    use crate::game::{ActionQueue, Board, Cell};
-    use crate::{DefaultActionQueue, Logic, PlayerId};
     use alloc::rc::Rc;
-    use pretty_assertions_sorted::{assert_eq, assert_eq_sorted};
     use std::collections::HashSet;
+
+    use pretty_assertions_sorted::{assert_eq, assert_eq_sorted};
     use test_case::test_case;
+
+    use crate::{
+        game::{
+            game_tests::{required_ready_from_players, state_with_board, VecActionQueue},
+            Action::{Occupy, Ready, Surrender},
+            ActionQueue, Board, Cell,
+            Phase::{Beginning, Inround, Outround},
+        },
+        DefaultActionQueue, Logic, PlayerId,
+    };
 
     #[test]
     fn advance__no_action() {
@@ -318,13 +326,19 @@ mod Logic_single_action {
 }
 
 mod Logic_multiple_actions {
-    use crate::game::game_tests::{required_ready_from_players, state_with_board, VecActionQueue};
-    use crate::game::Action::{Occupy, Ready};
-    use crate::game::Phase::{Beginning, Outround};
-    use crate::game::{Board, Cell};
-    use crate::{Logic, PlayerId};
     use alloc::rc::Rc;
+
     use pretty_assertions_sorted::assert_eq_sorted;
+
+    use crate::{
+        game::{
+            game_tests::{required_ready_from_players, state_with_board, VecActionQueue},
+            Action::{Occupy, Ready},
+            Board, Cell,
+            Phase::{Beginning, Outround},
+        },
+        Logic, PlayerId,
+    };
 
     #[test]
     fn win() {
@@ -433,10 +447,15 @@ mod Logic_multiple_actions {
 }
 
 mod DefaultActionQueue {
-    use crate::game::Action::{Ready, Surrender};
-    use crate::game::ActionQueue;
-    use crate::{DefaultActionQueue, PlayerId};
     use pretty_assertions_sorted::assert_eq_sorted;
+
+    use crate::{
+        game::{
+            Action::{Ready, Surrender},
+            ActionQueue,
+        },
+        DefaultActionQueue, PlayerId,
+    };
 
     #[test]
     fn add_pop() {
@@ -480,7 +499,10 @@ impl ActionQueue for VecActionQueue {
 fn state_with_board(board: Board) -> State {
     State {
         board,
-        players: [Player::new(PlayerId::new(0)), Player::new(PlayerId::new(1))],
+        players: [
+            Player::new(PlayerId::new(0), Local(Human)),
+            Player::new(PlayerId::new(1), Local(Human)),
+        ],
         phase: Inround,
         rounds: State::DEFAULT_ROUNDS,
         round: 0,

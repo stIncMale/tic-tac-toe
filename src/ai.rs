@@ -1,36 +1,44 @@
-use crate::game::Action::Ready;
-use crate::game::Phase::{Beginning, Inround, Outround};
-use crate::game::{Action, Ai, Cell};
-use crate::{DefaultActionQueue, PlayerId, State};
 use alloc::rc::Rc;
+
 use oorandom::Rand32;
+
+use crate::{
+    game::{
+        Action,
+        Action::Ready,
+        Ai, Cell,
+        Phase::{Beginning, Inround, Outround},
+    },
+    ActionQueue, DefaultActionQueue, PlayerId, State,
+};
 
 mod ai_tests;
 
 #[derive(Debug)]
 pub struct Random {
-    player_id: PlayerId,
     rng: Rand32,
     action_queue: Rc<DefaultActionQueue>,
 }
 
 impl Random {
-    pub fn new(player_id: PlayerId, seed: u64, action_queue: Rc<DefaultActionQueue>) -> Self {
+    pub fn new(seed: u64, action_queue: Rc<DefaultActionQueue>) -> Self {
         Self {
-            player_id,
             rng: Rand32::new(seed),
             action_queue,
         }
     }
 
     fn act_beginning_outround(&mut self, state: &State) {
-        if state.required_ready.contains(&self.player_id) {
+        if state
+            .required_ready
+            .contains(&self.action_queue.player_id())
+        {
             self.action_queue.add(Ready);
         };
     }
 
     fn act_inround(&mut self, state: &State) {
-        if state.turn() != self.player_id {
+        if state.turn() != self.action_queue.player_id() {
             return;
         }
         let board_size = state.board.size();
@@ -52,6 +60,10 @@ impl Random {
 }
 
 impl Ai for Random {
+    fn player_id(&self) -> PlayerId {
+        self.action_queue.player_id()
+    }
+
     fn act(&mut self, state: &State) {
         match state.phase {
             Beginning | Outround => self.act_beginning_outround(state),

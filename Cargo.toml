@@ -27,6 +27,7 @@ clap = { version = "3.2", features = ["unicode", "wrap_help", "cargo", "deprecat
 cursive = { version = "0.20", default-features = false, features = ["crossterm-backend"]}
 crossterm = "0.25"
 cursive_buffered_backend = "0.6"
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
 
 [dev-dependencies]
 pretty_assertions_sorted = "1.2"

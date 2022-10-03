@@ -1,2 +1,6 @@
 edition = "2021"
 newline_style = "Unix"
+reorder_modules = true
+reorder_imports = true
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"

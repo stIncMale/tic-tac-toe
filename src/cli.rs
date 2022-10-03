@@ -1,7 +1,8 @@
-use crate::{Dedicated, Interactive};
+use std::{ffi::OsString, net::SocketAddr};
+
 use clap::{crate_authors, crate_name, crate_version, value_parser, Arg, Command, Error};
-use std::ffi::OsString;
-use std::net::SocketAddr;
+
+use crate::{Dedicated, Interactive};
 
 mod cli_tests;
 

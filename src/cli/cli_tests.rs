@@ -9,11 +9,13 @@ fn command() {
 }
 
 mod ParsedArgs {
-    use crate::{Dedicated, ParsedArgs};
+    use std::net::ToSocketAddrs;
+
     use clap::ErrorKind;
     use pretty_assertions_sorted::assert_eq;
-    use std::net::ToSocketAddrs;
     use test_case::test_case;
+
+    use crate::{Dedicated, ParsedArgs};
 
     #[test_case(
         &[""],
