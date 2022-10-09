@@ -59,6 +59,7 @@ impl Display for Player {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct PlayerId {
+    // TODO implement Deref so that PlayerId can be used as if its usize
     pub idx: usize,
 }
 

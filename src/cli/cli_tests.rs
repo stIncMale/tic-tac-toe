@@ -11,7 +11,7 @@ fn command() {
 mod ParsedArgs {
     use std::net::ToSocketAddrs;
 
-    use clap::ErrorKind;
+    use clap::error::ErrorKind;
     use pretty_assertions_sorted::assert_eq;
     use test_case::test_case;
 

@@ -27,7 +27,7 @@
 
 use std::{env, process::ExitCode};
 
-use clap::ErrorKind::{DisplayHelp, DisplayVersion};
+use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
 use tic_tac_toe_lib::{cli::ParsedArgs, run};
 
 /// Exit codes complementing the canonical ones in [`ExitCode`](std::process::ExitCode).

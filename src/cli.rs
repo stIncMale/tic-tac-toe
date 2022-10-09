@@ -1,6 +1,8 @@
 use std::{ffi::OsString, net::SocketAddr};
 
-use clap::{crate_authors, crate_name, crate_version, value_parser, Arg, Command, Error};
+use clap::{
+    crate_authors, crate_name, crate_version, value_parser, Arg, ArgAction, Command, Error,
+};
 
 use crate::{Dedicated, Interactive};
 
@@ -9,11 +11,11 @@ mod cli_tests;
 const DEDICATED: &str = "dedicated";
 const LISTEN: &str = "listen";
 
-fn command<'a>() -> Command<'a> {
+fn command() -> Command {
     let about = "\
         \n\
         A multiplayer turn-based game. \
-        The game rules are simple an can be read at <https://en.wikipedia.org/wiki/Tic-tac-toe>.\n\
+        The game rules are simple and can be read at <https://en.wikipedia.org/wiki/Tic-tac-toe>.\n\
         \n\
         Can run in one of the two modes:\n  \
           * interactive;\n  \
@@ -37,12 +39,14 @@ fn command<'a>() -> Command<'a> {
         .author(concat!("\nAuthors:\n    ", crate_authors!()))
         .about(about)
         .long_about(about)
+        .disable_help_flag(true)
+        .disable_version_flag(true)
         .arg(
             Arg::new("help")
                 .short('h')
                 .long("help")
                 .required(false)
-                .takes_value(false)
+                .action(ArgAction::Help)
                 .long_help("Print short/long help."),
         )
         .arg(
@@ -50,14 +54,14 @@ fn command<'a>() -> Command<'a> {
                 .short('V')
                 .long("version")
                 .required(false)
-                .takes_value(false)
+                .action(ArgAction::Version)
                 .long_help("Print version."),
         )
         .arg(
             Arg::new(DEDICATED)
                 .long(DEDICATED)
                 .required(false)
-                .takes_value(false)
+                .action(ArgAction::SetTrue)
                 .long_help(
                     "Start in the dedicated server mode. \
                     If not specified, the application starts in the interactive mode.",
@@ -68,7 +72,7 @@ fn command<'a>() -> Command<'a> {
                 .long(LISTEN)
                 .required(false)
                 .requires(DEDICATED)
-                .takes_value(true)
+                .action(ArgAction::Set)
                 .value_parser(value_parser!(SocketAddr))
                 .default_value("127.0.0.1:2020")
                 .long_help(
@@ -98,7 +102,7 @@ impl ParsedArgs {
         T: Into<OsString> + Clone,
     {
         let arg_matches = command().try_get_matches_from(args)?;
-        if arg_matches.contains_id(DEDICATED) {
+        if arg_matches.get_flag(DEDICATED) {
             let listen: SocketAddr = arg_matches
                 .get_one::<SocketAddr>(LISTEN)
                 .map_or_else(|| panic!("{LISTEN} should be present"), ToOwned::to_owned);
