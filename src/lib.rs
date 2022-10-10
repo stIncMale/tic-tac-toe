@@ -113,9 +113,9 @@ fn run_tui(
             theme.palette[PaletteColor::Primary] = light_black;
             theme.palette[PaletteColor::Secondary] = grey;
             theme.palette[PaletteColor::Tertiary] = Color::Dark(BaseColor::Yellow);
-            theme.palette[PaletteColor::TitlePrimary] = Color::Dark(BaseColor::Green);
+            theme.palette[PaletteColor::TitlePrimary] = Color::Dark(BaseColor::Blue);
             theme.palette[PaletteColor::TitleSecondary] = Color::Light(BaseColor::Yellow);
-            theme.palette[PaletteColor::Highlight] = Color::Light(BaseColor::Blue);
+            theme.palette[PaletteColor::Highlight] = Color::Light(BaseColor::Green);
             theme.palette[PaletteColor::HighlightInactive] = theme.palette[PaletteColor::Highlight];
             theme.palette[PaletteColor::HighlightText] = Color::Dark(BaseColor::Blue);
         });

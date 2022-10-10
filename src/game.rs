@@ -9,6 +9,7 @@ use std::collections::HashSet;
 
 use crate::game::{
     Action::{Occupy, Ready, Surrender},
+    Line::{D1, D2, H, V},
     Phase::{Beginning, Inround, Outround},
     PlayerType::{Local, _Remote},
 };
@@ -59,7 +60,6 @@ impl Display for Player {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct PlayerId {
-    // TODO implement Deref so that PlayerId can be used as if its usize
     pub idx: usize,
 }
 
@@ -113,12 +113,6 @@ pub enum Phase {
     Outround,
 }
 
-impl Default for Phase {
-    fn default() -> Self {
-        Beginning
-    }
-}
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Cell {
     x: usize,
@@ -133,6 +127,13 @@ impl Cell {
         assert!(x < Board::SIZE, "{:?}, {:?}", x, Board::SIZE);
         assert!(y < Board::SIZE, "{:?}, {:?}", y, Board::SIZE);
         Self { x, y }
+    }
+}
+
+impl From<(usize, usize)> for Cell {
+    fn from(pair: (usize, usize)) -> Self {
+        let (x, y) = pair;
+        Self::new(x, y)
     }
 }
 
@@ -170,6 +171,25 @@ impl Board {
     }
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Line {
+    H(usize),
+    V(usize),
+    D1,
+    D2,
+}
+
+impl Line {
+    pub fn contains(&self, cell: &Cell) -> bool {
+        match self {
+            H(y) => cell.y == *y,
+            V(x) => cell.x == *x,
+            D1 => cell.x == cell.y,
+            D2 => cell.y == Board::SIZE - 1 - cell.x,
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct State {
     pub board: Board,
@@ -179,6 +199,7 @@ pub struct State {
     pub round: u32,
     pub step: u32,
     pub required_ready: HashSet<PlayerId>,
+    pub win_line: Option<Line>,
 }
 
 impl State {
@@ -196,11 +217,12 @@ impl State {
         Self {
             board: Board::new(),
             players,
-            phase: Phase::default(),
+            phase: Beginning,
             rounds,
             round: 0,
             step: 0,
             required_ready,
+            win_line: None,
         }
     }
 
@@ -333,16 +355,7 @@ where
         );
         state.required_ready.remove(&player_id);
         if state.required_ready.is_empty() {
-            match state.phase {
-                Beginning => {}
-                Outround => {
-                    state.step = 0;
-                    state.round += 1;
-                    state.board.clear();
-                }
-                Inround => panic!("{:?}, {:?}", state, player_id),
-            }
-            state.phase = Inround;
+            Logic::<A>::start_round(state);
         }
     }
 
@@ -361,13 +374,27 @@ where
     fn occupy(state: &mut State, cell: &Cell) {
         assert_eq!(state.phase, Inround);
         state.board.set(cell, state.turn());
-        if Logic::<A>::is_win(&state.board, cell) {
-            Logic::<A>::win(state);
+        if let Some(win_line) = Logic::<A>::check_win(&state.board, cell) {
+            Logic::<A>::win(state, win_line);
         } else if Logic::<A>::last_step(state.step, &state.board) {
             Logic::<A>::draw(state);
         } else {
             state.step += 1;
         }
+    }
+
+    fn start_round(state: &mut State) {
+        match state.phase {
+            Beginning => {}
+            Outround => {
+                state.step = 0;
+                state.round += 1;
+                state.board.clear();
+                state.win_line = None;
+            }
+            Inround => panic!("{:?}", state),
+        }
+        state.phase = Inround;
     }
 
     fn end_round(state: &mut State) {
@@ -379,9 +406,9 @@ where
         }
     }
 
-    // TODO instead return Option<(Cell, Cell)> specifying the winning line
-    // Then use it in TUI for fighlighting
-    fn is_win(board: &Board, last_occupied: &Cell) -> bool {
+    /// Returns [`None`] iff the `last_occupied` [`Cell`] does not result in a win codition,
+    /// otherwise returns the winning [`Line`].
+    fn check_win(board: &Board, last_occupied: &Cell) -> Option<Line> {
         let mut h_match = 0;
         let mut v_match = 0;
         let mut d1_match = 0;
@@ -404,15 +431,22 @@ where
                 d2_match += 1;
             }
         }
-        h_match == size || v_match == size || d1_match == size || d2_match == size
+        match size {
+            size if h_match == size => Some(H(y)),
+            size if v_match == size => Some(V(x)),
+            size if d1_match == size => Some(D1),
+            size if d2_match == size => Some(D2),
+            _ => None,
+        }
     }
 
     fn last_step(step: u32, board: &Board) -> bool {
         step == u32::try_from(board.size().pow(2) - 1).expect("should fit")
     }
 
-    fn win(state: &mut State) {
+    fn win(state: &mut State, win_line: Line) {
         state.players[state.turn().idx].wins += 1;
+        state.win_line = Some(win_line);
         Logic::<A>::end_round(state);
     }
 

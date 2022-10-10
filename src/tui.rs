@@ -33,6 +33,11 @@ type GameWorld = Rc<RefCell<World<DefaultActionQueue>>>;
 type ActionQueues = Rc<HashMap<PlayerId, Rc<DefaultActionQueue>, Xxh3Builder>>;
 type Clock = Rc<RefCell<AdvanceableClock>>;
 
+const HIGHLIGHTED_COLOR_STYLE: ColorStyle = ColorStyle {
+    front: ColorType::Palette(PaletteColor::Primary),
+    back: ColorType::Palette(PaletteColor::Tertiary),
+};
+
 pub struct GameView {
     game_world: GameWorld,
     clock: Clock,
@@ -144,10 +149,14 @@ impl GameView {
                 Panel::new(
                     LinearLayout::vertical()
                         .child(PlayerInfoView::new(player_id, game_world, clock))
-                        .child(Panel::new(LocalHumanControlsView::new(
-                            game_world,
-                            &action_queues[&player_id],
-                        ))),
+                        .child(
+                            Panel::new(LocalHumanControlsView::new(
+                                game_world,
+                                &action_queues[&player_id],
+                            ))
+                            .title("Controls")
+                            .title_position(HAlign::Left),
+                        ),
                 )
                 .title(title)
                 .title_position(HAlign::Left),
@@ -273,6 +282,7 @@ impl View for PlayerInfoView {
                     start,
                     match player.typ {
                         Local(Human) => "Your turn!",
+                        // TODO don't render if too short
                         Local(Ai) | _Remote => "Thinking...",
                     },
                 );
@@ -351,8 +361,12 @@ impl View for CellView {
                     txt_mark,
                 );
             };
-            // TODO render animation especially for AI/remote players; currently it's the opposite
-            if let Some(occupied_anim) = &self.occupied_anim {
+            if game_state
+                .win_line
+                .map_or(false, |line| line.contains(&self.cell))
+            {
+                printer.with_color(HIGHLIGHTED_COLOR_STYLE, draw);
+            } else if let Some(occupied_anim) = &self.occupied_anim {
                 occupied_anim.draw(printer, draw);
             } else {
                 draw(printer);
@@ -362,6 +376,27 @@ impl View for CellView {
 
     fn layout(&mut self, view_size: Vec2) {
         self.size = view_size;
+        let game_world = self.game_world.borrow();
+        let game_state = game_world.state();
+        match &self.occupied_anim {
+            None => {
+                if let Some(player_id) = game_state.board.get(&self.cell) {
+                    let turn = game_state.turn();
+                    if turn != player_id && game_state.players[turn.idx].typ == Local(Human) {
+                        self.occupied_anim = Some(BlinkingAnimation::new(
+                            &self.clock,
+                            Duration::from_millis(800),
+                            Some(1),
+                        ));
+                    }
+                }
+            }
+            Some(_) => {
+                if game_state.board.get(&self.cell).is_none() {
+                    self.occupied_anim = None;
+                }
+            }
+        }
     }
 
     fn required_size(&mut self, constraint: Vec2) -> Vec2 {
@@ -374,17 +409,7 @@ impl View for CellView {
                 event: MouseEvent::Press(MouseButton::Left),
                 position,
                 offset,
-            } if position.fits_in_rect(offset, self.size) => {
-                let event_res = self.on_mouse_press_left();
-                if event_res.is_consumed() {
-                    self.occupied_anim = Some(BlinkingAnimation::new(
-                        &self.clock,
-                        Duration::from_millis(50),
-                        Some(6),
-                    ));
-                }
-                event_res
-            }
+            } if position.fits_in_rect(offset, self.size) => self.on_mouse_press_left(),
             _ => Ignored,
         }
     }
@@ -570,13 +595,7 @@ impl BlinkingAnimation {
         } else {
             let even_period = (elapsed.as_nanos() / self.period.as_nanos()) & 1 == 0;
             if even_period {
-                printer.with_color(
-                    ColorStyle {
-                        front: ColorType::Palette(PaletteColor::Primary),
-                        back: ColorType::Palette(PaletteColor::Tertiary),
-                    },
-                    f,
-                );
+                printer.with_color(HIGHLIGHTED_COLOR_STYLE, f);
             } else {
                 f(printer);
             }

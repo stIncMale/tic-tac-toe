@@ -26,7 +26,7 @@ mod ParsedArgs {
             listen: "[::]:2020".to_socket_addrs().unwrap().next().unwrap()
         })]
     fn from_iterator__Ok(args: &[&str], expected: &ParsedArgs) {
-        assert_eq!(&ParsedArgs::from_iterator(args).unwrap(), expected);
+        assert_eq!(ParsedArgs::from_iterator(args).unwrap(), *expected);
     }
 
     #[test_case(
