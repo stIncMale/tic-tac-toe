@@ -105,7 +105,7 @@ impl ParsedArgs {
         if arg_matches.get_flag(DEDICATED) {
             let listen: SocketAddr = arg_matches
                 .get_one::<SocketAddr>(LISTEN)
-                .map_or_else(|| panic!("{LISTEN} should be present"), ToOwned::to_owned);
+                .map_or_else(|| panic!("{LISTEN} must be present."), ToOwned::to_owned);
             Ok(Dedicated { listen })
         } else {
             Ok(Interactive)

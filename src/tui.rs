@@ -2,7 +2,7 @@
 //! which is why instead of referencing, all [`crate::tui`] views "own" things via [`Rc`].
 
 use alloc::rc::Rc;
-use core::{cell::RefCell, ops::Mul, time::Duration};
+use core::{cell::RefCell, time::Duration};
 use std::{collections::HashMap, time::Instant};
 
 use cursive::{
@@ -22,11 +22,11 @@ use PlayerType::_Remote;
 
 use crate::{
     game::{Action, Cell, Phase::Inround},
-    util::AdvanceableClock,
+    util::{AdvanceableClock, AdvanceableClockTime, Timer},
     ActionQueue, Cursive, DefaultActionQueue, Event, EventResult,
     EventResult::Consumed,
     Human, LinearLayout, Local, LocalPlayerType, Logic, PaletteColor, Player, PlayerId, PlayerType,
-    Printer, State, World,
+    Printer, World,
 };
 
 type GameWorld = Rc<RefCell<World<DefaultActionQueue>>>;
@@ -50,15 +50,15 @@ impl GameView {
         action_queues: Vec<Rc<DefaultActionQueue>>,
     ) -> Self {
         assert_eq!(
-            State::PLAYER_COUNT,
+            game_world.state().players.len(),
             2,
-            "for more players TUI would have been implemented quite differently"
+            "For more players TUI would have been implemented quite differently."
         );
         assert!(
             !action_queues
                 .iter()
                 .any(|aq| game_world.state().players[aq.player_id().idx].typ != Local(Human)),
-            "{:?}, {:?}",
+            "The provided actions queues must correspond to `Local(Human)` players: {:?}, {:?}.",
             game_world,
             action_queues
         );
@@ -171,6 +171,11 @@ impl GameView {
             ),
         }
     }
+
+    fn advance(&mut self) {
+        self.clock.borrow_mut().advance();
+        self.game_world.borrow_mut().advance();
+    }
 }
 
 impl View for GameView {
@@ -179,8 +184,7 @@ impl View for GameView {
     }
 
     fn layout(&mut self, view_size: Vec2) {
-        self.clock.borrow_mut().advance();
-        self.game_world.borrow_mut().advance();
+        self.advance();
         self.layout.layout(view_size);
     }
 
@@ -565,9 +569,9 @@ impl View for LocalHumanControlsView {
 #[derive(Debug)]
 struct BlinkingAnimation {
     clock: Clock,
-    t_start: Duration,
+    start: AdvanceableClockTime,
     period: Duration,
-    duration_periods: Option<u32>,
+    timer: Option<Timer>,
 }
 
 impl BlinkingAnimation {
@@ -575,9 +579,11 @@ impl BlinkingAnimation {
         let now = clock.borrow().now();
         Self {
             clock: Rc::clone(clock),
-            t_start: now,
+            start: now,
             period,
-            duration_periods,
+            timer: duration_periods
+                .map(|duration_periods| period * duration_periods)
+                .map(|duration| Timer::new_set(now, duration)),
         }
     }
 
@@ -586,10 +592,11 @@ impl BlinkingAnimation {
         F: FnOnce(&Printer),
     {
         let now = self.clock.borrow().now();
-        let elapsed = now - self.t_start;
+        let elapsed = now.v - self.start.v;
         if self
-            .duration_periods
-            .map_or(false, |n| elapsed > self.period.mul(n))
+            .timer
+            .as_ref()
+            .map_or(false, |timer| timer.is_expired_or_unset(now))
         {
             f(printer);
         } else {

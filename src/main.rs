@@ -46,7 +46,7 @@ fn main() -> ExitCode {
             }
         }
         Err(e) => {
-            e.print().expect("printing an error should not fail");
+            e.print().expect("Printing an error should not fail.");
             match e.kind() {
                 DisplayHelp | DisplayVersion => ExitCode::SUCCESS,
                 _ => ExitCode::from(exit_code::INVALID_ARGS),

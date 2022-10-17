@@ -5,13 +5,16 @@ use core::{
     cell::RefCell,
     fmt::{Debug, Display, Formatter, Result},
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Instant};
 
-use crate::game::{
-    Action::{Occupy, Ready, Surrender},
-    Line::{D1, D2, H, V},
-    Phase::{Beginning, Inround, Outround},
-    PlayerType::{Local, _Remote},
+use crate::{
+    game::{
+        Action::{Occupy, Ready, Surrender},
+        Line::{D1, D2, H, V},
+        Phase::{Beginning, Inround, Outround},
+        PlayerType::{Local, _Remote},
+    },
+    util::AdvanceableClock,
 };
 
 mod game_tests;
@@ -65,7 +68,12 @@ pub struct PlayerId {
 
 impl PlayerId {
     pub fn new(idx: usize) -> Self {
-        assert!(idx < State::PLAYER_COUNT, "{:?}", idx);
+        assert!(
+            idx < State::PLAYER_COUNT,
+            "{:?}, {:?}",
+            idx,
+            State::PLAYER_COUNT
+        );
         Self { idx }
     }
 }
@@ -150,7 +158,7 @@ impl Board {
     }
 
     fn set(&mut self, cell: &Cell, player_id: PlayerId) {
-        assert_eq!(self.cells[cell.x][cell.y], None);
+        assert_eq!(self.cells[cell.x][cell.y], None, "{:?}, {:?}", self, cell);
         self.cells[cell.x][cell.y] = Option::from(player_id);
     }
 
@@ -190,8 +198,9 @@ impl Line {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq)]
 pub struct State {
+    pub clock: AdvanceableClock,
     pub board: Board,
     pub players: [Player; State::PLAYER_COUNT],
     pub phase: Phase,
@@ -203,18 +212,20 @@ pub struct State {
 }
 
 impl State {
+    // TODO does it have to be public?
     pub const DEFAULT_ROUNDS: u32 = 5;
-    pub const PLAYER_COUNT: usize = 2;
+    const PLAYER_COUNT: usize = 2;
 
     /// # Panics
     ///
     /// If the index of an item in `players` is not equal to the corresponding [`PlayerId`].
     pub fn new(players: [Player; State::PLAYER_COUNT], rounds: u32) -> Self {
         for (idx, player) in players.iter().enumerate() {
-            assert_eq!(player.id, idx, "{:?}, {:?}", player, idx);
+            assert_eq!(player.id, idx);
         }
         let required_ready = players.iter().map(|p| p.id).collect::<HashSet<PlayerId>>();
         Self {
+            clock: AdvanceableClock::new(Instant::now()),
             board: Board::new(),
             players,
             phase: Beginning,
@@ -228,8 +239,21 @@ impl State {
 
     pub fn turn(&self) -> PlayerId {
         PlayerId::from(
-            usize::try_from(self.step + self.round).expect("should fit") % self.players.len(),
+            usize::try_from(self.step + self.round).expect("Should fit.") % self.players.len(),
         )
+    }
+}
+
+impl PartialEq<State> for State {
+    fn eq(&self, other: &State) -> bool {
+        self.board == other.board
+            && self.players == other.players
+            && self.phase == other.phase
+            && self.rounds == other.rounds
+            && self.round == other.round
+            && self.step == other.step
+            && self.required_ready == other.required_ready
+            && self.win_line == other.win_line
     }
 }
 
@@ -311,7 +335,7 @@ where
                 if let Some(action) = self.action_queues[player_id.idx].pop() {
                     assert!(
                         !Logic::<A>::is_game_over(state),
-                        "{:?}, {:?}, {:?}",
+                        "The game ended too soon: {:?}, {:?}, {:?}.",
                         state,
                         player_id,
                         action
@@ -319,7 +343,10 @@ where
                     if action == Ready {
                         Logic::<A>::ready(state, player_id);
                     } else {
-                        panic!("{:?}, {:?}, {:?}", state, player_id, action)
+                        panic!(
+                            "Unexpected action: {:?}, {:?}, {:?}.",
+                            state, player_id, action
+                        )
                     }
                 }
             };
@@ -331,14 +358,14 @@ where
         while let Some(action) = self.action_queues[player_id.idx].pop() {
             assert!(
                 !Logic::<A>::is_game_over(state),
-                "{:?}, {:?}",
+                "The game ended too soon: {:?}, {:?}.",
                 state,
                 action
             );
             match action {
                 Surrender => Logic::<A>::surrender(state),
                 Occupy(cell) => Logic::<A>::occupy(state, &cell),
-                Ready => panic!("{:?}, {:?}", state, action),
+                Ready => panic!("Unexpected action: {:?}, {:?}.", state, action),
             }
             if state.turn() != player_id || state.phase != Inround {
                 break;
@@ -349,7 +376,7 @@ where
     fn ready(state: &mut State, player_id: PlayerId) {
         assert!(
             state.phase == Beginning || state.phase == Outround,
-            "{:?}, {:?}",
+            "Unexpected phase: {:?}, {:?}.",
             state,
             player_id
         );
@@ -363,7 +390,7 @@ where
         assert_eq!(
             State::PLAYER_COUNT,
             2,
-            "for more players this method would have been implemented quite differently"
+            "For more players this method would have been implemented quite differently."
         );
         assert_eq!(state.phase, Inround);
         let idx_other_player = (state.turn().idx + 1) % state.players.len();
@@ -441,7 +468,7 @@ where
     }
 
     fn last_step(step: u32, board: &Board) -> bool {
-        step == u32::try_from(board.size().pow(2) - 1).expect("should fit")
+        step == u32::try_from(board.size().pow(2) - 1).expect("Should fit.")
     }
 
     fn win(state: &mut State, win_line: Line) {
@@ -477,10 +504,21 @@ where
     A: ActionQueue,
 {
     pub fn new(state: State, logic: Logic<A>, ais: Vec<Box<dyn Ai>>) -> Self {
+        assert_eq!(
+            ais.len(),
+            state
+                .players
+                .iter()
+                .filter(|player| player.typ == Local(LocalPlayerType::Ai))
+                .count(),
+            "The number of `Ai`s must be equal to the number of `Local(Ai)` players: {:?}, {:?}.",
+            state,
+            ais
+        );
         assert!(
             !ais.iter()
                 .any(|ai| state.players[ai.player_id().idx].typ != Local(LocalPlayerType::Ai)),
-            "{:?}, {:?}",
+            "Each passed `Ai` must correspond to a `Local(Ai)` player: {:?}, {:?}.",
             state,
             ais
         );
@@ -488,6 +526,7 @@ where
     }
 
     pub fn advance(&mut self) {
+        self.state.clock.advance();
         for ai in &mut self.ais {
             ai.act(&self.state);
         }

@@ -22,7 +22,8 @@
     // unused_variables,
     // unused_mut,
     // unreachable_code,
-    // dead_code,
+    // TODO comment out
+    dead_code,
 )]
 
 extern crate alloc;
@@ -37,9 +38,9 @@ use std::{
 use cursive::{
     event::{Event, EventResult, Key},
     theme::{BaseColor, BorderStyle, Color, PaletteColor},
-    traits::Nameable,
-    views::{Dialog, LinearLayout},
-    Cursive, Printer,
+    traits::{Nameable, Resizable},
+    views::{Dialog, FixedLayout, Layer, LinearLayout, OnLayoutView, StackView, TextView},
+    Cursive, Printer, Rect, Vec2, View,
 };
 use LocalPlayerType::Human;
 use PlayerType::Local;
@@ -74,20 +75,25 @@ pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
 
 fn run_interactive(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
     let p0 = Player::new(PlayerId::new(0), Local(Ai));
-    let p1 = Player::new(PlayerId::new(1), Local(Human));
+    let p1 = Player::new(PlayerId::new(1), Local(Ai));
     let p0_id = p0.id;
     let p1_id = p1.id;
-    let act_queue_p0 = Rc::new(DefaultActionQueue::new(p0_id));
-    let act_queue_p1 = Rc::new(DefaultActionQueue::new(p1_id));
+    let p0_act_queue = Rc::new(DefaultActionQueue::new(p0_id));
+    let p1_act_queue = Rc::new(DefaultActionQueue::new(p1_id));
+    let p0_ai = ai::Random::new(
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
+        Rc::clone(&p0_act_queue),
+    );
+    let p1_ai = ai::Random::new(
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
+        Rc::clone(&p1_act_queue),
+    );
     let game_world = World::new(
         State::new([p0, p1], State::DEFAULT_ROUNDS),
-        Logic::new([Rc::clone(&act_queue_p0), Rc::clone(&act_queue_p1)]),
-        vec![Box::new(ai::Random::new(
-            SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos() as u64,
-            Rc::clone(&act_queue_p0),
-        ))],
+        Logic::new([Rc::clone(&p0_act_queue), Rc::clone(&p1_act_queue)]),
+        vec![Box::new(p0_ai), Box::new(p1_ai)],
     );
-    run_tui(game_world, vec![Rc::clone(&act_queue_p1)])
+    run_tui(game_world, vec![])
 }
 
 fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
@@ -120,8 +126,28 @@ fn run_tui(
             theme.palette[PaletteColor::HighlightText] = Color::Dark(BaseColor::Blue);
         });
     }
-    let screen = tui.screen_mut();
-    screen.add_layer(GameView::new(game_world, action_queues));
+    let status_bar = OnLayoutView::new(
+        FixedLayout::new().child(
+            Rect::from_point(Vec2::zero()),
+            Layer::new(TextView::new("(Esc) - exit")).full_width(),
+        ),
+        |layout, size| {
+            let top_left_y = {
+                if size.y >= 1 {
+                    size.y - 1
+                } else {
+                    size.y
+                }
+            };
+            layout.set_child_position(0, Rect::from_size((0, top_left_y), (size.x, 1)));
+            layout.layout(size);
+        },
+    );
+    tui.screen_mut().add_layer(
+        LinearLayout::vertical()
+            .child(StackView::new().layer(GameView::new(game_world, action_queues)))
+            .child(status_bar),
+    );
     tui.set_fps(30);
     configure_exit(&mut tui);
     tui.try_run_with::<Box<dyn Error>, _>(|| {
