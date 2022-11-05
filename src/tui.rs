@@ -1,18 +1,20 @@
 //! [`View`] forces us to have only `'static` references as fields,
 //! which is why instead of referencing, all [`crate::tui`] views "own" things via [`Rc`].
 
-use alloc::rc::Rc;
+use alloc::{borrow::Cow, rc::Rc};
 use core::{cell::RefCell, time::Duration};
 use std::{collections::HashMap, time::Instant};
 
 use cursive::{
     align::HAlign,
-    direction::Direction,
+    direction::{Direction, Orientation},
     event::{AnyCb, MouseButton, MouseEvent},
     theme::{ColorStyle, ColorType},
     traits::{Finder, Nameable, View},
     view::{CannotFocus, Selector, ViewNotFound},
-    views::{Button, DummyView, EnableableView, NamedView, Panel, ResizedView},
+    views::{
+        Button, DummyView, EnableableView, NamedView, Panel, ResizedView, SliderView, TextContent,
+    },
     Rect, Vec2,
 };
 use xxhash_rust::xxh3::Xxh3Builder;
@@ -21,12 +23,13 @@ use LocalPlayerType::Ai;
 use PlayerType::_Remote;
 
 use crate::{
+    ai,
     game::{Action, Cell, Phase::Inround},
-    util::{AdvanceableClock, AdvanceableClockTime, Timer},
+    util::{AdvanceableClock, Time, Timer},
     ActionQueue, Cursive, DefaultActionQueue, Event, EventResult,
     EventResult::Consumed,
     Human, LinearLayout, Local, LocalPlayerType, Logic, PaletteColor, Player, PlayerId, PlayerType,
-    Printer, World,
+    Printer, TextView, World,
 };
 
 type GameWorld = Rc<RefCell<World<DefaultActionQueue>>>;
@@ -45,6 +48,8 @@ pub struct GameView {
 }
 
 impl GameView {
+    const AI_COMMON_CTRLS_VIEW_ID: &'static str = "AI_COMMON_CTRLS_VIEW_ID";
+
     pub fn new(
         game_world: World<DefaultActionQueue>,
         action_queues: Vec<Rc<DefaultActionQueue>>,
@@ -83,7 +88,7 @@ impl GameView {
                 vec.sort_unstable_by_key(|p| p.typ);
                 vec
             };
-            LinearLayout::vertical()
+            let mut layout = LinearLayout::vertical()
                 .child(GameInfoView::new(&game_world))
                 .child(
                     LinearLayout::horizontal()
@@ -104,7 +109,19 @@ impl GameView {
                             &action_queues,
                             &clock,
                         )),
-                )
+                );
+            if players_local_human_first.first().unwrap().typ == Local(Ai) {
+                // all players are AI
+                layout.add_child(
+                    Panel::new(
+                        LocalAiCommonControlsView::new(&game_world)
+                            .with_name(GameView::AI_COMMON_CTRLS_VIEW_ID),
+                    )
+                    .title("Common bot controls")
+                    .title_position(HAlign::Left),
+                );
+            }
+            layout
         };
         Self {
             game_world,
@@ -143,7 +160,7 @@ impl GameView {
         action_queues: &ActionQueues,
         clock: &Clock,
     ) -> Box<dyn View> {
-        let title = format!("{}", game_world.borrow().state().players[player_id.idx]);
+        let title = game_world.borrow().state().players[player_id.idx].to_string();
         match game_world.borrow().state().players[player_id.idx].typ {
             Local(Human) => Box::new(
                 Panel::new(
@@ -173,8 +190,24 @@ impl GameView {
     }
 
     fn advance(&mut self) {
-        self.clock.borrow_mut().advance();
-        self.game_world.borrow_mut().advance();
+        self.clock.borrow_mut().advance_to_real_now();
+        let maximise_advance = self
+            .layout
+            .call_on_name(
+                GameView::AI_COMMON_CTRLS_VIEW_ID,
+                |view: &mut NamedView<LocalAiCommonControlsView>| {
+                    view.get_mut().unleashed_promptness
+                },
+            )
+            .unwrap();
+        if maximise_advance {
+            // TODO implement this based on FPS
+            for _ in 0..200_000 {
+                self.game_world.borrow_mut().advance();
+            }
+        } else {
+            self.game_world.borrow_mut().advance();
+        }
     }
 }
 
@@ -285,8 +318,8 @@ impl View for PlayerInfoView {
                 printer.print(
                     start,
                     match player.typ {
+                        // TODO render status when waiting for ready (not necessary here)
                         Local(Human) => "Your turn!",
-                        // TODO don't render if too short
                         Local(Ai) | _Remote => "Thinking...",
                     },
                 );
@@ -355,7 +388,7 @@ impl View for CellView {
         let game_world = self.game_world.borrow();
         let game_state = game_world.state();
         if let Some(player_id) = game_state.board.get(&self.cell) {
-            let txt_mark = &format!("{}", game_state.players[player_id.idx].mark());
+            let txt_mark = &game_state.players[player_id.idx].mark().to_string();
             let draw = |printer: &Printer| {
                 printer.print(
                     Vec2::new(
@@ -566,10 +599,143 @@ impl View for LocalHumanControlsView {
     }
 }
 
+struct LocalAiCommonControlsView {
+    game_world: GameWorld,
+    unleashed_promptness: bool,
+    promptness_view_content: TextContent,
+    layout: LinearLayout,
+}
+
+impl LocalAiCommonControlsView {
+    const PROMPTNESS_SLIDER_ID: &'static str = "PROMPTNESS_SLIDER_ID";
+
+    fn new(game_world: &GameWorld) -> Self {
+        let promtpness_slider = {
+            let mut slider = SliderView::new(Orientation::Horizontal, 19);
+            slider.set_value(slider.get_max_value() / 2);
+            slider.with_name(LocalAiCommonControlsView::PROMPTNESS_SLIDER_ID)
+        };
+        let promptness_view_content = TextContent::new("");
+        let centering_layout = LinearLayout::horizontal()
+            .child(ResizedView::with_full_width(DummyView {}))
+            .child(
+                LinearLayout::horizontal()
+                    .child(TextView::new("Promptness: "))
+                    .child(promtpness_slider)
+                    .child(TextView::new_with_content(promptness_view_content.clone())),
+            )
+            .child(ResizedView::with_full_width(DummyView {}));
+        Self {
+            game_world: Rc::clone(game_world),
+            promptness_view_content,
+            unleashed_promptness: false,
+            layout: centering_layout,
+        }
+    }
+
+    fn control(&mut self) {
+        let mut game_world = self.game_world.borrow_mut();
+        for ai in game_world.ais() {
+            // promptness ∈ [-promptness_max, promptness_max]
+            let (promptness, promptness_max) = self
+                .layout
+                .call_on_name(
+                    LocalAiCommonControlsView::PROMPTNESS_SLIDER_ID,
+                    |named_slider: &mut NamedView<SliderView>| {
+                        let slider = named_slider.get_mut();
+                        let slider_max_value = slider.get_max_value();
+                        assert_eq!(
+                            slider_max_value & 1,
+                            1,
+                            "The implementation expects an odd value."
+                        );
+                        let slider_half_max_value = slider.get_max_value() / 2;
+                        (
+                            i32::try_from(slider.get_value()).unwrap()
+                                - i32::try_from(slider_half_max_value).unwrap(),
+                            i32::try_from(slider_half_max_value).unwrap(),
+                        )
+                    },
+                )
+                .unwrap();
+            let default_promptness = 0;
+            let txt_default = "default";
+            let txt_fps_based = "FPS-based";
+            let txt_unleashed = "unleashed";
+            let txt_promptness_max_len = 1 + txt_default
+                .len()
+                .max(txt_fps_based.len().max(txt_unleashed.len()));
+            self.unleashed_promptness = promptness == promptness_max;
+            let (delay, txt_promptness) = if promptness == default_promptness {
+                (ai::DEFAULT_BASE_DELAY, Cow::from(txt_default.to_string()))
+            } else if self.unleashed_promptness {
+                (Duration::from_nanos(0), Cow::from(txt_unleashed))
+            } else if promptness == promptness_max - 1 {
+                (Duration::from_nanos(0), Cow::from(txt_fps_based))
+            } else {
+                let delay = ai::DEFAULT_BASE_DELAY
+                    .mul_f32((if promptness < 0 { 1.25f32 } else { 1.8 }).powi(-promptness));
+                let txt_promptness = promptness.to_string();
+                assert!(
+                    txt_promptness.len() <= txt_promptness_max_len,
+                    "Numeric promptness representation should not be longer than a verbal one: {:?}, {:?}.",
+                    txt_promptness.len(),
+                    txt_promptness_max_len
+                );
+                (delay, Cow::from(txt_promptness))
+            };
+            ai.set_base_act_delay(delay);
+            self.promptness_view_content
+                .set_content(format!(" {:txt_promptness_max_len$}", txt_promptness));
+        }
+    }
+}
+
+impl View for LocalAiCommonControlsView {
+    fn draw(&self, printer: &Printer) {
+        self.layout.draw(printer);
+    }
+
+    fn layout(&mut self, view_size: Vec2) {
+        self.control();
+        self.layout.layout(view_size);
+    }
+
+    fn needs_relayout(&self) -> bool {
+        self.layout.needs_relayout()
+    }
+
+    fn required_size(&mut self, constraint: Vec2) -> Vec2 {
+        self.layout.required_size(constraint)
+    }
+
+    fn on_event(&mut self, event: Event) -> EventResult {
+        self.layout.on_event(event)
+    }
+
+    fn call_on_any<'a>(&mut self, selector: &Selector<'_>, cb: AnyCb<'a>) {
+        self.layout.call_on_any(selector, cb);
+    }
+
+    fn focus_view(&mut self, selector: &Selector<'_>) -> Result<EventResult, ViewNotFound> {
+        self.layout.focus_view(selector)
+    }
+
+    fn take_focus(&mut self, source: Direction) -> Result<EventResult, CannotFocus> {
+        self.layout.take_focus(source)
+    }
+
+    fn important_area(&self, view_size: Vec2) -> Rect {
+        self.layout.important_area(view_size)
+    }
+}
+
 #[derive(Debug)]
 struct BlinkingAnimation {
+    // TODO pass clock to draw, don't store it as that's introduces too much overhead
     clock: Clock,
-    start: AdvanceableClockTime,
+    // TODO use `timer` instead of `start` to measure time passed
+    start: Time,
     period: Duration,
     timer: Option<Timer>,
 }

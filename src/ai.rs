@@ -16,51 +16,33 @@ use crate::{
 
 mod ai_tests;
 
+pub const DEFAULT_BASE_DELAY: Duration = Duration::from_millis(700);
+
 #[derive(Debug)]
 pub struct Random {
     rng: Rand32,
     action_queue: Rc<DefaultActionQueue>,
-    base_act_delay: Option<Duration>,
-    act_timer: Option<Timer>,
+    base_act_delay: Duration,
+    act_timer: Timer,
 }
 
 impl Random {
-    pub const DEFAULT_BASE_DELAY: Duration = Duration::from_millis(700);
-
     pub fn new(seed: u64, action_queue: Rc<DefaultActionQueue>) -> Self {
         Self {
             rng: Rand32::new(seed),
             action_queue,
-            base_act_delay: Some(Random::DEFAULT_BASE_DELAY),
-            act_timer: Some(Timer::new()),
-        }
-    }
-
-    pub fn set_base_act_delay(&mut self, delay: Option<Duration>) {
-        if let Some(delay) = delay {
-            self.base_act_delay = Some(delay);
-            if let Some(act_timer) = &mut self.act_timer {
-                act_timer.set_duration(delay);
-            }
-        } else {
-            self.base_act_delay = None;
-            self.act_timer = None;
+            base_act_delay: DEFAULT_BASE_DELAY,
+            act_timer: Timer::new(),
         }
     }
 
     fn act_beginning_outround(&mut self, state: &State) {
         // By handling `act_timer` here as the first thing, we are making sure that
         // when AI plays vs. AI, there is no double waiting before becoming ready.
-        if self.act_timer.as_mut().map_or(true, |act_timer| {
-            act_timer.check_expired_then_unset_if_true_or_set_if_unset(state.clock.now(), || {
-                Random::delay(
-                    self.base_act_delay.expect("Should be `Some`."),
-                    &mut self.rng,
-                )
-            })
-        }) && state
-            .required_ready
-            .contains(&self.action_queue.player_id())
+        if self.can_act(state)
+            && state
+                .required_ready
+                .contains(&self.action_queue.player_id())
         {
             self.action_queue.add(Ready);
         }
@@ -70,14 +52,7 @@ impl Random {
         if state.turn() != self.action_queue.player_id() {
             return;
         }
-        if self.act_timer.as_mut().map_or(true, |act_timer| {
-            act_timer.check_expired_then_unset_if_true_or_set_if_unset(state.clock.now(), || {
-                Random::delay(
-                    self.base_act_delay.expect("Should be `Some`."),
-                    &mut self.rng,
-                )
-            })
-        }) {
+        if self.can_act(state) {
             self.action_queue
                 .add(Action::Occupy(Random::decide_cell(&mut self.rng, state)));
         }
@@ -85,7 +60,7 @@ impl Random {
 
     fn decide_cell(rng: &mut Rand32, state: &State) -> Cell {
         let board_size = state.board.size();
-        let empty_cells_cnt = u32::try_from(board_size.pow(2)).expect("Should fit.") - state.step;
+        let empty_cells_cnt = u32::try_from(board_size.pow(2)).unwrap() - state.step;
         let mut shift = rng.rand_range(0..empty_cells_cnt);
         for x in 0..board_size {
             for y in 0..board_size {
@@ -101,8 +76,18 @@ impl Random {
         unreachable!("This method must called only if a decision is possible.")
     }
 
+    fn can_act(&mut self, state: &State) -> bool {
+        self.base_act_delay.is_zero()
+            || self
+                .act_timer
+                .check_expired_then_unset_if_true_or_set_if_unset(
+                    state.clock.as_ref().unwrap().now(),
+                    || Random::delay(self.base_act_delay, &mut self.rng),
+                )
+    }
+
     fn delay(base: Duration, rng: &mut Rand32) -> Duration {
-        base.mul_f32(1f32 + (rng.rand_float() - 0.5) / 2f32)
+        base.mul_f32(1.0 + (rng.rand_float() - 0.5) / 2.0)
     }
 }
 
@@ -116,5 +101,11 @@ impl Ai for Random {
             Beginning | Outround => self.act_beginning_outround(state),
             Inround => self.act_inround(state),
         };
+    }
+
+    fn set_base_act_delay(&mut self, delay: Duration) {
+        self.base_act_delay = delay;
+        self.act_timer
+            .set_duration(Random::delay(self.base_act_delay, &mut self.rng));
     }
 }

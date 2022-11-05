@@ -3,6 +3,7 @@
 
 mod Random {
     use alloc::rc::Rc;
+    use core::time::Duration;
     use std::{
         panic,
         time::{SystemTime, UNIX_EPOCH},
@@ -11,7 +12,10 @@ mod Random {
     use ntest::timeout;
     use oorandom::Rand64;
 
-    use crate::{ai, Ai, DefaultActionQueue, Local, Logic, Player, PlayerId, State, World};
+    use crate::{
+        ai, game::Ai, DefaultActionQueue, Local, LocalPlayerType, Logic, Player, PlayerId, State,
+        World,
+    };
 
     #[test]
     #[timeout(100)]
@@ -23,8 +27,8 @@ mod Random {
                 .as_nanos(),
         );
         for _ in 0..1_000 {
-            let p0 = Player::new(PlayerId::new(0), Local(Ai));
-            let p1 = Player::new(PlayerId::new(1), Local(Ai));
+            let p0 = Player::new(PlayerId::new(0), Local(LocalPlayerType::Ai));
+            let p1 = Player::new(PlayerId::new(1), Local(LocalPlayerType::Ai));
             let p0_id = p0.id;
             let p1_id = p1.id;
             let p0_act_queue = Rc::new(DefaultActionQueue::new(p0_id));
@@ -33,20 +37,17 @@ mod Random {
             let p1_ai_rng_seed = rng.rand_u64();
             let p0_ai = {
                 let mut ai = ai::Random::new(p0_ai_rng_seed, Rc::clone(&p0_act_queue));
-                ai.set_base_act_delay(None);
+                ai.set_base_act_delay(Duration::from_nanos(0));
                 ai
             };
             let p1_ai = {
                 let mut ai = ai::Random::new(p1_ai_rng_seed, Rc::clone(&p1_act_queue));
-                ai.set_base_act_delay(None);
+                ai.set_base_act_delay(Duration::from_nanos(0));
                 ai
             };
             let mut world = World::new(
                 State::new([p0, p1], State::DEFAULT_ROUNDS),
-                Logic::new([
-                    Rc::clone(&p0_act_queue) as Rc<DefaultActionQueue>,
-                    Rc::clone(&p1_act_queue) as Rc<DefaultActionQueue>,
-                ]),
+                Logic::new([Rc::clone(&p0_act_queue), Rc::clone(&p1_act_queue)]),
                 vec![Box::new(p0_ai), Box::new(p1_ai)],
             );
             let enough_iterations = {

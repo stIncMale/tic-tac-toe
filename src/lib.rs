@@ -22,8 +22,7 @@
     // unused_variables,
     // unused_mut,
     // unreachable_code,
-    // TODO comment out
-    dead_code,
+    // dead_code,
 )]
 
 extern crate alloc;

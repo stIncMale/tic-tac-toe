@@ -335,7 +335,7 @@ mod Logic_single_action {
             vec![Some(Surrender), Some(Occupy((0, 0).into()))],
         ));
         Logic::new([
-            Rc::clone(&act_queue_p0) as Rc<VecActionQueue>,
+            Rc::clone(&act_queue_p0),
             Rc::new(VecActionQueue::new(PlayerId::new(1), vec![])),
         ])
         .advance(&mut state);
@@ -452,10 +452,7 @@ mod Logic_multiple_actions {
                 None,
             ],
         ));
-        let logic = Logic::new([
-            Rc::clone(&act_queue_p0) as Rc<VecActionQueue>,
-            Rc::clone(&act_queue_p1) as Rc<VecActionQueue>,
-        ]);
+        let logic = Logic::new([Rc::clone(&act_queue_p0), Rc::clone(&act_queue_p1)]);
         let actions_cnt = act_queue_p0.actions.borrow().len() + act_queue_p1.actions.borrow().len();
         for _ in 0..actions_cnt {
             logic.advance(&mut state);

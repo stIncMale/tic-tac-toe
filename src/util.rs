@@ -2,11 +2,11 @@ use core::time::Duration;
 use std::time::Instant;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct AdvanceableClockTime {
+pub struct Time {
     pub v: Duration,
 }
 
-impl AdvanceableClockTime {
+impl Time {
     pub fn new(v: Duration) -> Self {
         Self { v }
     }
@@ -15,57 +15,61 @@ impl AdvanceableClockTime {
 #[derive(Debug, Eq, PartialEq)]
 pub struct AdvanceableClock {
     start: Instant,
-    now: AdvanceableClockTime,
+    now: Time,
 }
 
 impl AdvanceableClock {
     pub fn new(start: Instant) -> Self {
-        let mut new = Self {
+        Self {
             start,
-            now: AdvanceableClockTime::new(Duration::from_nanos(0)),
-        };
-        new.advance();
-        new
+            now: Time::new(Duration::from_nanos(0)),
+        }
     }
 
-    pub fn advance(&mut self) {
-        self.now = AdvanceableClockTime::new(self.start.elapsed());
+    pub fn advance_to_real_now(&mut self) {
+        self.now = Time::new(self.start.elapsed());
     }
 
-    pub fn now(&self) -> AdvanceableClockTime {
+    pub fn now(&self) -> Time {
         self.now
     }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct Timer {
-    start: Option<AdvanceableClockTime>,
+    start: Option<Time>,
     duration: Duration,
 }
 
 impl Timer {
     pub fn new() -> Self {
+        // TODO express unset by making duration optional rather than start
         Self {
             start: None,
             ..Default::default()
         }
     }
 
-    pub fn new_set(start: AdvanceableClockTime, duration: Duration) -> Self {
+    pub fn new_set(start: Time, duration: Duration) -> Self {
         Self {
             start: Some(start),
             duration,
         }
     }
 
-    pub fn is_expired_or_unset(&self, t: AdvanceableClockTime) -> bool {
+    // TODO uncomment
+    // pub fn elapsed(&self, t: Time) -> Option<Duration> {
+    //     self.start.map(|start| t.v - start.v)
+    // }
+
+    pub fn is_expired_or_unset(&self, t: Time) -> bool {
         self.start
             .map_or(true, |start| Timer::is_expired(start, self.duration, t))
     }
 
     pub fn check_expired_then_unset_if_true_or_set_if_unset<F>(
         &mut self,
-        t: AdvanceableClockTime,
+        t: Time,
         duration: F,
     ) -> bool
     where
@@ -84,7 +88,7 @@ impl Timer {
         }
     }
 
-    pub fn set(&mut self, start: AdvanceableClockTime, duration: Duration) {
+    pub fn set(&mut self, start: Time, duration: Duration) {
         self.start = Some(start);
         self.duration = duration;
     }
@@ -97,11 +101,7 @@ impl Timer {
         self.duration = duration;
     }
 
-    fn is_expired(
-        start: AdvanceableClockTime,
-        duration: Duration,
-        t: AdvanceableClockTime,
-    ) -> bool {
+    fn is_expired(start: Time, duration: Duration, t: Time) -> bool {
         t.v - start.v >= duration
     }
 }

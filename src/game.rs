@@ -4,6 +4,7 @@ use alloc::{collections::VecDeque, rc::Rc};
 use core::{
     cell::RefCell,
     fmt::{Debug, Display, Formatter, Result},
+    time::Duration,
 };
 use std::{collections::HashSet, time::Instant};
 
@@ -200,7 +201,7 @@ impl Line {
 
 #[derive(Debug, Eq)]
 pub struct State {
-    pub clock: AdvanceableClock,
+    pub clock: Option<AdvanceableClock>,
     pub board: Board,
     pub players: [Player; State::PLAYER_COUNT],
     pub phase: Phase,
@@ -225,7 +226,7 @@ impl State {
         }
         let required_ready = players.iter().map(|p| p.id).collect::<HashSet<PlayerId>>();
         Self {
-            clock: AdvanceableClock::new(Instant::now()),
+            clock: None,
             board: Board::new(),
             players,
             phase: Beginning,
@@ -238,9 +239,7 @@ impl State {
     }
 
     pub fn turn(&self) -> PlayerId {
-        PlayerId::from(
-            usize::try_from(self.step + self.round).expect("Should fit.") % self.players.len(),
-        )
+        PlayerId::from(usize::try_from(self.step + self.round).unwrap() % self.players.len())
     }
 }
 
@@ -468,7 +467,7 @@ where
     }
 
     fn last_step(step: u32, board: &Board) -> bool {
-        step == u32::try_from(board.size().pow(2) - 1).expect("Should fit.")
+        step == u32::try_from(board.size().pow(2) - 1).unwrap()
     }
 
     fn win(state: &mut State, win_line: Line) {
@@ -490,6 +489,8 @@ pub trait Ai: Debug {
     fn player_id(&self) -> PlayerId;
 
     fn act(&mut self, state: &State);
+
+    fn set_base_act_delay(&mut self, delay: Duration);
 }
 
 #[derive(Debug)]
@@ -526,7 +527,10 @@ where
     }
 
     pub fn advance(&mut self) {
-        self.state.clock.advance();
+        if self.state.clock.is_none() {
+            self.state.clock = Some(AdvanceableClock::new(Instant::now()));
+        }
+        self.state.clock.as_mut().unwrap().advance_to_real_now();
         for ai in &mut self.ais {
             ai.act(&self.state);
         }
@@ -535,5 +539,9 @@ where
 
     pub fn state(&self) -> &State {
         &self.state
+    }
+
+    pub fn ais(&mut self) -> &mut Vec<Box<dyn Ai>> {
+        &mut self.ais
     }
 }
