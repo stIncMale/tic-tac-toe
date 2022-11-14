@@ -39,7 +39,7 @@ fn main() -> ExitCode {
     match ParsedArgs::from_iterator(env::args_os()) {
         Ok(parsed_args) => {
             if let Err(e) = run(parsed_args) {
-                eprint!("{}", e);
+                eprint!("{e}");
                 ExitCode::FAILURE
             } else {
                 ExitCode::SUCCESS

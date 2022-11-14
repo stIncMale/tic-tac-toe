@@ -43,11 +43,7 @@ pub struct Timer {
 
 impl Timer {
     pub fn new() -> Self {
-        // TODO express unset by making duration optional rather than start
-        Self {
-            start: None,
-            ..Default::default()
-        }
+        Timer::default()
     }
 
     pub fn new_set(start: Time, duration: Duration) -> Self {

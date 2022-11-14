@@ -2,7 +2,7 @@
 name = "tic-tac-toe"
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.64.0"
+rust-version = "1.65.0"
 authors = ["Valentin Kovalenko <https://www.kovalenko.link>"]
 description = "A multiplayer turn-based game."
 readme = "readme.md"
@@ -21,7 +21,6 @@ name = "tic-tac-toe"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = "1.0"
 oorandom = "11.1"
 clap = { version = "4.0", features = ["unicode", "wrap_help", "cargo", "deprecated"] }
 cursive = { version = "0.20", default-features = false, features = ["crossterm-backend"]}
@@ -32,7 +31,7 @@ xxhash-rust = { version = "0.8", features = ["xxh3"] }
 [dev-dependencies]
 pretty_assertions_sorted = "1.2"
 test-case = "2.2"
-ntest = "0.8"
+ntest = "0.9"
 
 [profile.release]
 opt-level = "z"

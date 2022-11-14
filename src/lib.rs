@@ -24,15 +24,16 @@
     // unreachable_code,
     // dead_code,
 )]
+// TODO remove when https://github.com/rust-lang/rust/issues/103765 is done,
+// also remove +nightly from cargo test, build, run commands.
+#![feature(error_in_core)]
 
 extern crate alloc;
 extern crate core;
 
 use alloc::rc::Rc;
-use std::{
-    error::Error,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use core::error::Error;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use cursive::{
     event::{Event, EventResult, Key},

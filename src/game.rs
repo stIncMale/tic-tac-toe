@@ -133,8 +133,8 @@ impl Cell {
     ///
     /// If the either `x` or `y` is greater than or equal to [`Board::SIZE`].
     pub fn new(x: usize, y: usize) -> Self {
-        assert!(x < Board::SIZE, "{:?}, {:?}", x, Board::SIZE);
-        assert!(y < Board::SIZE, "{:?}, {:?}", y, Board::SIZE);
+        assert!(x < Board::SIZE, "{x:?}, {:?}", Board::SIZE);
+        assert!(y < Board::SIZE, "{y:?}, {:?}", Board::SIZE);
         Self { x, y }
     }
 }
@@ -159,7 +159,7 @@ impl Board {
     }
 
     fn set(&mut self, cell: &Cell, player_id: PlayerId) {
-        assert_eq!(self.cells[cell.x][cell.y], None, "{:?}, {:?}", self, cell);
+        assert_eq!(self.cells[cell.x][cell.y], None, "{self:?}, {cell:?}");
         self.cells[cell.x][cell.y] = Option::from(player_id);
     }
 
@@ -334,18 +334,12 @@ where
                 if let Some(action) = self.action_queues[player_id.idx].pop() {
                     assert!(
                         !Logic::<A>::is_game_over(state),
-                        "The game ended too soon: {:?}, {:?}, {:?}.",
-                        state,
-                        player_id,
-                        action
+                        "The game ended too soon: {state:?}, {player_id:?}, {action:?}."
                     );
                     if action == Ready {
                         Logic::<A>::ready(state, player_id);
                     } else {
-                        panic!(
-                            "Unexpected action: {:?}, {:?}, {:?}.",
-                            state, player_id, action
-                        )
+                        panic!("Unexpected action: {state:?}, {player_id:?}, {action:?}.")
                     }
                 }
             };
@@ -357,14 +351,12 @@ where
         while let Some(action) = self.action_queues[player_id.idx].pop() {
             assert!(
                 !Logic::<A>::is_game_over(state),
-                "The game ended too soon: {:?}, {:?}.",
-                state,
-                action
+                "The game ended too soon: {state:?}, {action:?}."
             );
             match action {
                 Surrender => Logic::<A>::surrender(state),
                 Occupy(cell) => Logic::<A>::occupy(state, &cell),
-                Ready => panic!("Unexpected action: {:?}, {:?}.", state, action),
+                Ready => panic!("Unexpected action: {state:?}, {action:?}."),
             }
             if state.turn() != player_id || state.phase != Inround {
                 break;
@@ -375,9 +367,7 @@ where
     fn ready(state: &mut State, player_id: PlayerId) {
         assert!(
             state.phase == Beginning || state.phase == Outround,
-            "Unexpected phase: {:?}, {:?}.",
-            state,
-            player_id
+            "Unexpected phase: {state:?}, {player_id:?}."
         );
         state.required_ready.remove(&player_id);
         if state.required_ready.is_empty() {
@@ -418,7 +408,7 @@ where
                 state.board.clear();
                 state.win_line = None;
             }
-            Inround => panic!("{:?}", state),
+            Inround => panic!("{state:?}"),
         }
         state.phase = Inround;
     }
@@ -512,16 +502,12 @@ where
                 .iter()
                 .filter(|player| player.typ == Local(LocalPlayerType::Ai))
                 .count(),
-            "The number of `Ai`s must be equal to the number of `Local(Ai)` players: {:?}, {:?}.",
-            state,
-            ais
+            "The number of `Ai`s must be equal to the number of `Local(Ai)` players: {state:?}, {ais:?}."
         );
         assert!(
             !ais.iter()
                 .any(|ai| state.players[ai.player_id().idx].typ != Local(LocalPlayerType::Ai)),
-            "Each passed `Ai` must correspond to a `Local(Ai)` player: {:?}, {:?}.",
-            state,
-            ais
+            "Each passed `Ai` must correspond to a `Local(Ai)` player: {state:?}, {ais:?}."
         );
         Self { state, logic, ais }
     }
@@ -530,6 +516,7 @@ where
         if self.state.clock.is_none() {
             self.state.clock = Some(AdvanceableClock::new(Instant::now()));
         }
+        // there is no behavior requiring a fixed time step, so we use a variable one
         self.state.clock.as_mut().unwrap().advance_to_real_now();
         for ai in &mut self.ais {
             ai.act(&self.state);

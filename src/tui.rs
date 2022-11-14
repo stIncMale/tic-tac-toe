@@ -63,9 +63,7 @@ impl GameView {
             !action_queues
                 .iter()
                 .any(|aq| game_world.state().players[aq.player_id().idx].typ != Local(Human)),
-            "The provided actions queues must correspond to `Local(Human)` players: {:?}, {:?}.",
-            game_world,
-            action_queues
+            "The provided actions queues must correspond to `Local(Human)` players: {game_world:?}, {action_queues:?}."
         );
         let action_queues = {
             let mut map = HashMap::with_hasher(Xxh3Builder::new());
@@ -233,7 +231,7 @@ impl View for GameView {
         self.layout.on_event(event)
     }
 
-    fn call_on_any<'a>(&mut self, selector: &Selector<'_>, cb: AnyCb<'a>) {
+    fn call_on_any<'a>(&mut self, selector: &Selector<'_>, cb: AnyCb<'_>) {
         self.layout.call_on_any(selector, cb);
     }
 
@@ -371,7 +369,7 @@ impl CellView {
         let game_world = self.game_world.borrow();
         let game_state = game_world.state();
         if let Some(action_queue) = self.action_queues.get(&game_state.turn()) {
-            if game_state.phase == Inround && game_state.board.get(&self.cell) == None {
+            if game_state.phase == Inround && game_state.board.get(&self.cell).is_none() {
                 action_queue.add(Action::Occupy(self.cell));
                 Consumed(None)
             } else {
@@ -582,7 +580,7 @@ impl View for LocalHumanControlsView {
         self.layout.on_event(event)
     }
 
-    fn call_on_any<'a>(&mut self, selector: &Selector<'_>, cb: AnyCb<'a>) {
+    fn call_on_any<'a>(&mut self, selector: &Selector<'_>, cb: AnyCb<'_>) {
         self.layout.call_on_any(selector, cb);
     }
 
@@ -686,7 +684,7 @@ impl LocalAiCommonControlsView {
             };
             ai.set_base_act_delay(delay);
             self.promptness_view_content
-                .set_content(format!(" {:txt_promptness_max_len$}", txt_promptness));
+                .set_content(format!(" {txt_promptness:txt_promptness_max_len$}"));
         }
     }
 }
@@ -713,7 +711,7 @@ impl View for LocalAiCommonControlsView {
         self.layout.on_event(event)
     }
 
-    fn call_on_any<'a>(&mut self, selector: &Selector<'_>, cb: AnyCb<'a>) {
+    fn call_on_any<'a>(&mut self, selector: &Selector<'_>, cb: AnyCb<'_>) {
         self.layout.call_on_any(selector, cb);
     }
 
@@ -734,7 +732,6 @@ impl View for LocalAiCommonControlsView {
 struct BlinkingAnimation {
     // TODO pass clock to draw, don't store it as that's introduces too much overhead
     clock: Clock,
-    // TODO use `timer` instead of `start` to measure time passed
     start: Time,
     period: Duration,
     timer: Option<Timer>,
