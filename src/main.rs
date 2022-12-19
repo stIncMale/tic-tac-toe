@@ -4,7 +4,6 @@
     future_incompatible,
     unused_qualifications,
     clippy::all,
-    clippy::perf,
     clippy::pedantic,
     clippy::cargo,
     clippy::std_instead_of_core,

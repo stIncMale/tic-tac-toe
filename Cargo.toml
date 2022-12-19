@@ -2,7 +2,7 @@
 name = "tic-tac-toe"
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.65.0"
+rust-version = "1.66.0"
 authors = ["Valentin Kovalenko <https://www.kovalenko.link>"]
 description = "A multiplayer turn-based game."
 readme = "readme.md"
