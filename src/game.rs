@@ -201,6 +201,7 @@ impl Line {
 
 #[derive(Debug, Eq)]
 pub struct State {
+    /// Must be initialized as a result of the first invocation of [`World::advance()`].
     pub clock: Option<AdvanceableClock>,
     pub board: Board,
     pub players: [Player; State::PLAYER_COUNT],

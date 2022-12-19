@@ -290,6 +290,7 @@ impl View for GameInfoView {
 struct PlayerInfoView {
     player_id: PlayerId,
     game_world: GameWorld,
+    clock: Clock,
     size: Vec2,
     thinking_anim: BlinkingAnimation,
 }
@@ -299,8 +300,13 @@ impl PlayerInfoView {
         Self {
             player_id,
             game_world: Rc::clone(game_world),
+            clock: Rc::clone(clock),
             size: Vec2::default(),
-            thinking_anim: BlinkingAnimation::new(clock, Duration::from_millis(200), None),
+            thinking_anim: BlinkingAnimation::new(
+                clock.borrow().now(),
+                Duration::from_millis(200),
+                None,
+            ),
         }
     }
 }
@@ -312,16 +318,17 @@ impl View for PlayerInfoView {
         let player = &game_state.players[self.player_id.idx];
         let start = Vec2::new(2, 0);
         if game_state.phase == Inround && game_state.turn() == self.player_id {
-            self.thinking_anim.draw(printer, |printer| {
-                printer.print(
-                    start,
-                    match player.typ {
-                        // TODO render status when waiting for ready (not necessary here)
-                        Local(Human) => "Your turn!",
-                        Local(Ai) | _Remote => "Thinking...",
-                    },
-                );
-            });
+            self.thinking_anim
+                .draw(self.clock.borrow().now(), printer, |printer| {
+                    printer.print(
+                        start,
+                        match player.typ {
+                            // TODO render status when waiting for ready (not necessary here)
+                            Local(Human) => "Your turn!",
+                            Local(Ai) | _Remote => "Thinking...",
+                        },
+                    );
+                });
         }
         printer.print(
             start + Vec2::new(0, 1),
@@ -402,7 +409,7 @@ impl View for CellView {
             {
                 printer.with_color(HIGHLIGHTED_COLOR_STYLE, draw);
             } else if let Some(occupied_anim) = &self.occupied_anim {
-                occupied_anim.draw(printer, draw);
+                occupied_anim.draw(self.clock.borrow().now(), printer, draw);
             } else {
                 draw(printer);
             }
@@ -419,7 +426,7 @@ impl View for CellView {
                     let turn = game_state.turn();
                     if turn != player_id && game_state.players[turn.idx].typ == Local(Human) {
                         self.occupied_anim = Some(BlinkingAnimation::new(
-                            &self.clock,
+                            self.clock.borrow().now(),
                             Duration::from_millis(800),
                             Some(1),
                         ));
@@ -730,31 +737,26 @@ impl View for LocalAiCommonControlsView {
 
 #[derive(Debug)]
 struct BlinkingAnimation {
-    // TODO pass clock to draw, don't store it as that's introduces too much overhead
-    clock: Clock,
     start: Time,
     period: Duration,
     timer: Option<Timer>,
 }
 
 impl BlinkingAnimation {
-    fn new(clock: &Clock, period: Duration, duration_periods: Option<u32>) -> Self {
-        let now = clock.borrow().now();
+    fn new(start: Time, period: Duration, duration_periods: Option<u32>) -> Self {
         Self {
-            clock: Rc::clone(clock),
-            start: now,
+            start,
             period,
             timer: duration_periods
                 .map(|duration_periods| period * duration_periods)
-                .map(|duration| Timer::new_set(now, duration)),
+                .map(|duration| Timer::new_set(start, duration)),
         }
     }
 
-    fn draw<F>(&self, printer: &Printer, f: F)
+    fn draw<F>(&self, now: Time, printer: &Printer, f: F)
     where
         F: FnOnce(&Printer),
     {
-        let now = self.clock.borrow().now();
         let elapsed = now.v - self.start.v;
         if self
             .timer
