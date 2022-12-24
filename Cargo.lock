@@ -866,6 +866,7 @@ dependencies = [
  "oorandom",
  "pretty_assertions_sorted",
  "test-case",
+ "unicode-width",
  "xxhash-rust",
 ]
 

@@ -53,11 +53,6 @@ impl Timer {
         }
     }
 
-    // TODO uncomment
-    // pub fn elapsed(&self, t: Time) -> Option<Duration> {
-    //     self.start.map(|start| t.v - start.v)
-    // }
-
     pub fn is_expired_or_unset(&self, t: Time) -> bool {
         self.start
             .map_or(true, |start| Timer::is_expired(start, self.duration, t))

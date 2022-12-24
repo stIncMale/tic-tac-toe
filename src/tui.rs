@@ -15,8 +15,9 @@ use cursive::{
     views::{
         Button, DummyView, EnableableView, NamedView, Panel, ResizedView, SliderView, TextContent,
     },
-    Rect, Vec2,
+    Rect, Vec2, With,
 };
+use unicode_width::UnicodeWidthStr;
 use xxhash_rust::xxh3::Xxh3Builder;
 use EventResult::Ignored;
 use LocalPlayerType::Ai;
@@ -24,7 +25,10 @@ use PlayerType::_Remote;
 
 use crate::{
     ai,
-    game::{Action, Cell, Phase::Inround},
+    game::{
+        Action, Cell,
+        Phase::{Beginning, Inround, Outround},
+    },
     util::{AdvanceableClock, Time, Timer},
     ActionQueue, Cursive, DefaultActionQueue, Event, EventResult,
     EventResult::Consumed,
@@ -87,7 +91,7 @@ impl GameView {
                 vec
             };
             let mut layout = LinearLayout::vertical()
-                .child(GameInfoView::new(&game_world))
+                .child(Panel::new(GameInfoView::new(&game_world)))
                 .child(
                     LinearLayout::horizontal()
                         .child(GameView::player_layout(
@@ -115,7 +119,7 @@ impl GameView {
                         LocalAiCommonControlsView::new(&game_world)
                             .with_name(GameView::AI_COMMON_CTRLS_VIEW_ID),
                     )
-                    .title("Common bot controls")
+                    .title("Common AI controls")
                     .title_position(HAlign::Left),
                 );
             }
@@ -267,10 +271,10 @@ impl View for GameInfoView {
     fn draw(&self, printer: &Printer) {
         let game_world = self.game_world.borrow();
         let game_state = game_world.state();
-        let txt_round = &format!("Round {}/{}", game_state.round + 1, game_state.rounds);
+        let txt_round = &format!("Round {} of {}", game_state.round + 1, game_state.rounds);
         printer.print(
             Vec2::new(
-                HAlign::Center.get_offset(txt_round.chars().count(), self.size.x),
+                HAlign::Center.get_offset(UnicodeWidthStr::width(txt_round.as_str()), self.size.x),
                 HAlign::Center.get_offset(1, self.size.y),
             ),
             txt_round,
@@ -282,7 +286,8 @@ impl View for GameInfoView {
     }
 
     fn required_size(&mut self, constraint: Vec2) -> Vec2 {
-        constraint
+        let max_height = 3usize;
+        constraint.with_if(constraint.y > max_height, |v| v.y = max_height)
     }
 }
 
@@ -292,7 +297,7 @@ struct PlayerInfoView {
     game_world: GameWorld,
     clock: Clock,
     size: Vec2,
-    thinking_anim: BlinkingAnimation,
+    status_anim: BlinkingAnimation,
 }
 
 impl PlayerInfoView {
@@ -302,7 +307,7 @@ impl PlayerInfoView {
             game_world: Rc::clone(game_world),
             clock: Rc::clone(clock),
             size: Vec2::default(),
-            thinking_anim: BlinkingAnimation::new(
+            status_anim: BlinkingAnimation::new(
                 clock.borrow().now(),
                 Duration::from_millis(200),
                 None,
@@ -317,18 +322,49 @@ impl View for PlayerInfoView {
         let game_state = game_world.state();
         let player = &game_state.players[self.player_id.idx];
         let start = Vec2::new(2, 0);
-        if game_state.phase == Inround && game_state.turn() == self.player_id {
-            self.thinking_anim
+        let txt_status = "Status: ";
+        let start_status = start + Vec2::new(UnicodeWidthStr::width(txt_status), 0);
+        printer.print(start, txt_status);
+        let (txt_status, animated) = {
+            let txt_waiting = "waiting";
+            match game_state.phase {
+                Beginning | Outround => {
+                    if game_state.required_ready.contains(&self.player_id) {
+                        (
+                            match player.typ {
+                                Local(Human) => "ready up",
+                                Local(Ai) | _Remote => "readying up",
+                            },
+                            true,
+                        )
+                    } else if Logic::<DefaultActionQueue>::is_game_over(game_state) {
+                        ("", false)
+                    } else {
+                        (txt_waiting, false)
+                    }
+                }
+                Inround => {
+                    if game_state.turn() == self.player_id {
+                        (
+                            match player.typ {
+                                Local(Human) => "your turn",
+                                Local(Ai) | _Remote => "thinking",
+                            },
+                            true,
+                        )
+                    } else {
+                        (txt_waiting, false)
+                    }
+                }
+            }
+        };
+        if animated {
+            self.status_anim
                 .draw(self.clock.borrow().now(), printer, |printer| {
-                    printer.print(
-                        start,
-                        match player.typ {
-                            // TODO render status when waiting for ready (not necessary here)
-                            Local(Human) => "Your turn!",
-                            Local(Ai) | _Remote => "Thinking...",
-                        },
-                    );
+                    printer.print(start_status, txt_status);
                 });
+        } else {
+            printer.print(start_status, txt_status);
         }
         printer.print(
             start + Vec2::new(0, 1),
@@ -397,7 +433,8 @@ impl View for CellView {
             let draw = |printer: &Printer| {
                 printer.print(
                     Vec2::new(
-                        HAlign::Center.get_offset(txt_mark.chars().count(), self.size.x),
+                        HAlign::Center
+                            .get_offset(UnicodeWidthStr::width(txt_mark.as_str()), self.size.x),
                         HAlign::Center.get_offset(1, self.size.y),
                     ),
                     txt_mark,
@@ -544,17 +581,19 @@ impl LocalHumanControlsView {
         );
     }
 
-    fn btn_disabled_on_cb<F, S>(id: S, label: S, cb: F) -> NamedView<EnableableView<Button>>
+    fn btn_disabled_on_cb<S, F>(
+        id: &'static str,
+        label: S,
+        cb: F,
+    ) -> NamedView<EnableableView<Button>>
     where
-        F: 'static + Fn(&mut Cursive),
         S: Into<String>,
+        F: 'static + Fn(&mut Cursive),
     {
-        let id = id.into();
         let mut btn = {
-            let id = id.clone();
             EnableableView::new(Button::new(label, move |tui| {
                 cb(tui);
-                tui.call_on_name(&id, |btn: &mut NamedView<EnableableView<Button>>| {
+                tui.call_on_name(id, |btn: &mut NamedView<EnableableView<Button>>| {
                     btn.get_mut().disable();
                 });
             }))
@@ -664,15 +703,16 @@ impl LocalAiCommonControlsView {
                 )
                 .unwrap();
             let default_promptness = 0;
-            let txt_default = "default";
-            let txt_fps_based = "FPS-based";
-            let txt_unleashed = "unleashed";
-            let txt_promptness_max_len = 1 + txt_default
-                .len()
-                .max(txt_fps_based.len().max(txt_unleashed.len()));
+            // the space here is a filler in place of the `-` sign indicator
+            let txt_default = " default";
+            let txt_fps_based = " FPS-based";
+            let txt_unleashed = " unleashed";
+            let txt_promptness_max_width = UnicodeWidthStr::width(txt_default).max(
+                UnicodeWidthStr::width(txt_fps_based).max(UnicodeWidthStr::width(txt_unleashed)),
+            );
             self.unleashed_promptness = promptness == promptness_max;
             let (delay, txt_promptness) = if promptness == default_promptness {
-                (ai::DEFAULT_BASE_DELAY, Cow::from(txt_default.to_string()))
+                (ai::DEFAULT_BASE_DELAY, Cow::from(txt_default))
             } else if self.unleashed_promptness {
                 (Duration::from_nanos(0), Cow::from(txt_unleashed))
             } else if promptness == promptness_max - 1 {
@@ -680,18 +720,23 @@ impl LocalAiCommonControlsView {
             } else {
                 let delay = ai::DEFAULT_BASE_DELAY
                     .mul_f32((if promptness < 0 { 1.25f32 } else { 1.8 }).powi(-promptness));
-                let txt_promptness = promptness.to_string();
+                let txt_promptness = if promptness < 0 {
+                    promptness.to_string()
+                } else {
+                    // the space here is a filler in place of the `-` sign indicator
+                    format!(" {promptness}")
+                };
+                let txt_promptness_width = UnicodeWidthStr::width(txt_promptness.as_str());
                 assert!(
-                    txt_promptness.len() <= txt_promptness_max_len,
-                    "Numeric promptness representation should not be longer than a verbal one: {:?}, {:?}.",
-                    txt_promptness.len(),
-                    txt_promptness_max_len
+                    txt_promptness_width <= txt_promptness_max_width,
+                    "Numeric promptness representation should not be longer than a verbal one: {txt_promptness_width:?}, {txt_promptness_max_width:?}."
                 );
                 (delay, Cow::from(txt_promptness))
             };
             ai.set_base_act_delay(delay);
             self.promptness_view_content
-                .set_content(format!(" {txt_promptness:txt_promptness_max_len$}"));
+                // the space here is a spacer between the promptness slider and the text
+                .set_content(format!(" {txt_promptness:<txt_promptness_max_width$}"));
         }
     }
 }

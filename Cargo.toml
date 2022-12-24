@@ -27,6 +27,8 @@ cursive = { version = "0.20", default-features = false, features = ["crossterm-b
 crossterm = "0.25"
 cursive_buffered_backend = "0.6"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
+# see https://tomdebruijn.com/posts/rust-string-length-width-calculations/
+unicode-width = { version = "0.1", features = ["no_std"] }
 
 [dev-dependencies]
 pretty_assertions_sorted = "1.2"
@@ -37,5 +39,5 @@ ntest = "0.9"
 opt-level = "z"
 lto = true
 codegen-units = 1
-# This is definitely OK for the interactive mode, and should be fine for the dedicated server mode.
+# this is definitely OK for the interactive mode, and should be fine for the dedicated server mode
 panic = "abort"

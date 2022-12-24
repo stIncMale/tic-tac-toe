@@ -102,7 +102,7 @@ impl Display for PlayerType {
         f.write_str(match self {
             Local(subtype) => match subtype {
                 LocalPlayerType::Human => "local player",
-                LocalPlayerType::Ai => "bot",
+                LocalPlayerType::Ai => "AI",
             },
             _Remote => "remote player",
         })
