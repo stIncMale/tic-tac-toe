@@ -41,7 +41,7 @@ mod Logic_single_action {
 
     use crate::{
         game::{
-            game_tests::{required_ready_from_players, state_with_board, VecActionQueue},
+            test::{required_ready_from_players, state_with_board, VecActionQueue},
             Action::{Occupy, Ready, Surrender},
             ActionQueue, Board, Cell, Line,
             Line::{D1, D2, H, V},
@@ -357,7 +357,7 @@ mod Logic_multiple_actions {
 
     use crate::{
         game::{
-            game_tests::{required_ready_from_players, state_with_board, VecActionQueue},
+            test::{required_ready_from_players, state_with_board, VecActionQueue},
             Action::{Occupy, Ready},
             Board,
             Line::D2,

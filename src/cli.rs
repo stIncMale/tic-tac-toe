@@ -1,21 +1,17 @@
 use std::{ffi::OsString, net::SocketAddr};
 
-use clap::{
-    crate_authors, crate_name, crate_version, value_parser, Arg, ArgAction, Command, Error,
-};
+use clap::{crate_authors, crate_description, value_parser, Arg, ArgAction, Command, Error};
 
-use crate::{Dedicated, Interactive};
+use crate::{Dedicated, Interactive, APP_INFO};
 
-mod cli_tests;
+mod test;
 
 const DEDICATED: &str = "dedicated";
 const LISTEN: &str = "listen";
 
 fn command() -> Command {
-    let about = "\
-        \n\
-        A multiplayer turn-based game. \
-        The game rules are simple and can be read at <https://en.wikipedia.org/wiki/Tic-tac-toe>.\n\
+    let about = format!(
+    "{crate_description} The game rules can be read at <https://en.wikipedia.org/wiki/Tic-tac-toe>.\n\
         \n\
         Can run in one of the two modes:\n  \
           * interactive;\n  \
@@ -24,21 +20,32 @@ fn command() -> Command {
         Interactive mode:\n    \
             The interactive mode is the default one and allows playing offline against an AI,\
             hosting a game, joining a game as a guest.\n\
-        \n\
         Dedicated server mode:\n    \
             The dedicated server mode allows guests to join, \
             find other players and play with them.\n\
         \n\
-        Homepage:\n    \
-            <https://github.com/stIncMale/tic-tac-toe>.\n\
-        \n\
         Warning:\n    \
-            The project is being developed, not all functionality is implemented.";
-    Command::new(crate_name!())
-        .version(crate_version!())
+            The project is being developed, not all functionality is implemented.\n\
+        \n\
+        Homepage:\n    \
+            <{homepage}>.",
+        crate_description = crate_description!(),
+        homepage = APP_INFO.homepage
+    );
+    Command::new(APP_INFO.name)
+        .bin_name(&APP_INFO.exe)
+        .version(APP_INFO.version)
         .author(concat!("\nAuthors:\n    ", crate_authors!()))
         .about(about)
-        .long_about(about)
+        .help_template(
+            "{name} {version}\n\
+            \n\
+            {about}{author}\n\
+            \n\
+            {usage-heading}\n\
+            {usage}\n\
+            {all-args}",
+        )
         .disable_help_flag(true)
         .disable_version_flag(true)
         .arg(
@@ -47,7 +54,7 @@ fn command() -> Command {
                 .long("help")
                 .required(false)
                 .action(ArgAction::Help)
-                .long_help("Print short/long help."),
+                .help("Print help."),
         )
         .arg(
             Arg::new("version")
@@ -55,14 +62,14 @@ fn command() -> Command {
                 .long("version")
                 .required(false)
                 .action(ArgAction::Version)
-                .long_help("Print version."),
+                .help("Print version."),
         )
         .arg(
             Arg::new(DEDICATED)
                 .long(DEDICATED)
                 .required(false)
                 .action(ArgAction::SetTrue)
-                .long_help(
+                .help(
                     "Start in the dedicated server mode. \
                     If not specified, the application starts in the interactive mode.",
                 ),
@@ -75,7 +82,7 @@ fn command() -> Command {
                 .action(ArgAction::Set)
                 .value_parser(value_parser!(SocketAddr))
                 .default_value("127.0.0.1:2020")
-                .long_help(
+                .help(
                     "The TCP socket address to listen on for game clients \
                     and web console requests.",
                 ),

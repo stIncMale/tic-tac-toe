@@ -10,23 +10,23 @@ use crate::{
         Ai, Cell,
         Phase::{Beginning, Inround, Outround},
     },
-    util::Timer,
+    util::time::Timer,
     ActionQueue, DefaultActionQueue, PlayerId, State,
 };
 
-mod ai_tests;
+mod test;
 
 pub const DEFAULT_BASE_DELAY: Duration = Duration::from_millis(700);
 
 #[derive(Debug)]
-pub struct Random {
+pub struct RandomAi {
     rng: Rand32,
     action_queue: Rc<DefaultActionQueue>,
     base_act_delay: Duration,
     act_timer: Timer,
 }
 
-impl Random {
+impl RandomAi {
     pub fn new(seed: u64, action_queue: Rc<DefaultActionQueue>) -> Self {
         Self {
             rng: Rand32::new(seed),
@@ -54,7 +54,7 @@ impl Random {
         }
         if self.can_act(state) {
             self.action_queue
-                .add(Action::Occupy(Random::decide_cell(&mut self.rng, state)));
+                .add(Action::Occupy(RandomAi::decide_cell(&mut self.rng, state)));
         }
     }
 
@@ -82,7 +82,7 @@ impl Random {
                 .act_timer
                 .check_expired_then_unset_if_true_or_set_if_unset(
                     state.clock.as_ref().unwrap().now(),
-                    || Random::delay(self.base_act_delay, &mut self.rng),
+                    || RandomAi::delay(self.base_act_delay, &mut self.rng),
                 )
     }
 
@@ -91,7 +91,7 @@ impl Random {
     }
 }
 
-impl Ai for Random {
+impl Ai for RandomAi {
     fn player_id(&self) -> PlayerId {
         self.action_queue.player_id()
     }
@@ -106,6 +106,6 @@ impl Ai for Random {
     fn set_base_act_delay(&mut self, delay: Duration) {
         self.base_act_delay = delay;
         self.act_timer
-            .set_duration(Random::delay(self.base_act_delay, &mut self.rng));
+            .set_duration(RandomAi::delay(self.base_act_delay, &mut self.rng));
     }
 }

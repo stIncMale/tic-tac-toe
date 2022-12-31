@@ -15,6 +15,7 @@
 #![allow(
     clippy::similar_names,
     clippy::cast_possible_truncation,
+    clippy::module_name_repetitions,
     // uncomment below to simplify editing, comment out again before committing
     // clippy::pedantic,
     // unused_imports,

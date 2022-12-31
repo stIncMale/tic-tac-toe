@@ -13,8 +13,8 @@ mod Random {
     use oorandom::Rand64;
 
     use crate::{
-        ai, game::Ai, DefaultActionQueue, Local, LocalPlayerType, Logic, Player, PlayerId, State,
-        World,
+        ai::RandomAi, game::Ai, DefaultActionQueue, Local, LocalPlayerType, Logic, Player,
+        PlayerId, State, World,
     };
 
     #[test]
@@ -36,12 +36,12 @@ mod Random {
             let p0_ai_rng_seed = rng.rand_u64();
             let p1_ai_rng_seed = rng.rand_u64();
             let p0_ai = {
-                let mut ai = ai::Random::new(p0_ai_rng_seed, Rc::clone(&p0_act_queue));
+                let mut ai = RandomAi::new(p0_ai_rng_seed, Rc::clone(&p0_act_queue));
                 ai.set_base_act_delay(Duration::from_nanos(0));
                 ai
             };
             let p1_ai = {
-                let mut ai = ai::Random::new(p1_ai_rng_seed, Rc::clone(&p1_act_queue));
+                let mut ai = RandomAi::new(p1_ai_rng_seed, Rc::clone(&p1_act_queue));
                 ai.set_base_act_delay(Duration::from_nanos(0));
                 ai
             };

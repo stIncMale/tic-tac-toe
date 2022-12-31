@@ -15,10 +15,10 @@ use crate::{
         Phase::{Beginning, Inround, Outround},
         PlayerType::{Local, _Remote},
     },
-    util::AdvanceableClock,
+    util::time::AdvanceableClock,
 };
 
-mod game_tests;
+mod test;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Mark {
@@ -51,7 +51,7 @@ impl Player {
         match self.id.idx {
             0 => Mark::X,
             1 => Mark::O,
-            _ => panic!("{:?}", self.id),
+            _ => panic!("{:?}.", self.id),
         }
     }
 }
@@ -71,7 +71,7 @@ impl PlayerId {
     pub fn new(idx: usize) -> Self {
         assert!(
             idx < State::PLAYER_COUNT,
-            "{:?}, {:?}",
+            "{:?}, {:?}.",
             idx,
             State::PLAYER_COUNT
         );
@@ -133,8 +133,8 @@ impl Cell {
     ///
     /// If the either `x` or `y` is greater than or equal to [`Board::SIZE`].
     pub fn new(x: usize, y: usize) -> Self {
-        assert!(x < Board::SIZE, "{x:?}, {:?}", Board::SIZE);
-        assert!(y < Board::SIZE, "{y:?}, {:?}", Board::SIZE);
+        assert!(x < Board::SIZE, "{x:?}, {:?}.", Board::SIZE);
+        assert!(y < Board::SIZE, "{y:?}, {:?}.", Board::SIZE);
         Self { x, y }
     }
 }
@@ -159,7 +159,7 @@ impl Board {
     }
 
     fn set(&mut self, cell: &Cell, player_id: PlayerId) {
-        assert_eq!(self.cells[cell.x][cell.y], None, "{self:?}, {cell:?}");
+        assert_eq!(self.cells[cell.x][cell.y], None, "{self:?}, {cell:?}.");
         self.cells[cell.x][cell.y] = Option::from(player_id);
     }
 
@@ -409,7 +409,7 @@ where
                 state.board.clear();
                 state.win_line = None;
             }
-            Inround => panic!("{state:?}"),
+            Inround => panic!("{state:?}."),
         }
         state.phase = Inround;
     }
