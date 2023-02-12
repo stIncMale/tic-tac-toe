@@ -51,7 +51,7 @@ impl Player {
         match self.id.idx {
             0 => Mark::X,
             1 => Mark::O,
-            _ => panic!("{:?}.", self.id),
+            _ => panic!("{:?}", self.id),
         }
     }
 }
@@ -63,6 +63,7 @@ impl Display for Player {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+// TODO refactor to use tuple struct
 pub struct PlayerId {
     pub idx: usize,
 }
@@ -71,8 +72,7 @@ impl PlayerId {
     pub fn new(idx: usize) -> Self {
         assert!(
             idx < State::PLAYER_COUNT,
-            "{:?}, {:?}.",
-            idx,
+            "{idx:?}, {:?}",
             State::PLAYER_COUNT
         );
         Self { idx }
@@ -133,8 +133,8 @@ impl Cell {
     ///
     /// If the either `x` or `y` is greater than or equal to [`Board::SIZE`].
     pub fn new(x: usize, y: usize) -> Self {
-        assert!(x < Board::SIZE, "{x:?}, {:?}.", Board::SIZE);
-        assert!(y < Board::SIZE, "{y:?}, {:?}.", Board::SIZE);
+        assert!(x < Board::SIZE, "{x:?}, {:?}", Board::SIZE);
+        assert!(y < Board::SIZE, "{y:?}, {:?}", Board::SIZE);
         Self { x, y }
     }
 }
@@ -159,7 +159,7 @@ impl Board {
     }
 
     fn set(&mut self, cell: &Cell, player_id: PlayerId) {
-        assert_eq!(self.cells[cell.x][cell.y], None, "{self:?}, {cell:?}.");
+        assert_eq!(self.cells[cell.x][cell.y], None, "{self:?}, {cell:?}");
         self.cells[cell.x][cell.y] = Option::from(player_id);
     }
 
@@ -335,12 +335,12 @@ where
                 if let Some(action) = self.action_queues[player_id.idx].pop() {
                     assert!(
                         !Logic::<A>::is_game_over(state),
-                        "The game ended too soon: {state:?}, {player_id:?}, {action:?}."
+                        "the game ended too soon: {state:?}, {player_id:?}, {action:?}"
                     );
                     if action == Ready {
                         Logic::<A>::ready(state, player_id);
                     } else {
-                        panic!("Unexpected action: {state:?}, {player_id:?}, {action:?}.")
+                        panic!("unexpected action: {state:?}, {player_id:?}, {action:?}")
                     }
                 }
             };
@@ -352,12 +352,12 @@ where
         while let Some(action) = self.action_queues[player_id.idx].pop() {
             assert!(
                 !Logic::<A>::is_game_over(state),
-                "The game ended too soon: {state:?}, {action:?}."
+                "the game ended too soon: {state:?}, {action:?}"
             );
             match action {
                 Surrender => Logic::<A>::surrender(state),
                 Occupy(cell) => Logic::<A>::occupy(state, &cell),
-                Ready => panic!("Unexpected action: {state:?}, {action:?}."),
+                Ready => panic!("unexpected action: {state:?}, {action:?}"),
             }
             if state.turn() != player_id || state.phase != Inround {
                 break;
@@ -368,7 +368,7 @@ where
     fn ready(state: &mut State, player_id: PlayerId) {
         assert!(
             state.phase == Beginning || state.phase == Outround,
-            "Unexpected phase: {state:?}, {player_id:?}."
+            "unexpected phase: {state:?}, {player_id:?}"
         );
         state.required_ready.remove(&player_id);
         if state.required_ready.is_empty() {
@@ -380,7 +380,7 @@ where
         assert_eq!(
             State::PLAYER_COUNT,
             2,
-            "For more players this method would have been implemented quite differently."
+            "for more players this method would have been implemented quite differently"
         );
         assert_eq!(state.phase, Inround);
         let idx_other_player = (state.turn().idx + 1) % state.players.len();
@@ -409,7 +409,7 @@ where
                 state.board.clear();
                 state.win_line = None;
             }
-            Inround => panic!("{state:?}."),
+            Inround => panic!("{state:?}"),
         }
         state.phase = Inround;
     }
@@ -488,6 +488,7 @@ pub trait Ai: Debug {
 pub struct World<A> {
     state: State,
     logic: Logic<A>,
+    // TODO use impl Ai / generic?
     ais: Vec<Box<dyn Ai>>,
 }
 
@@ -503,12 +504,12 @@ where
                 .iter()
                 .filter(|player| player.typ == Local(LocalPlayerType::Ai))
                 .count(),
-            "The number of `Ai`s must be equal to the number of `Local(Ai)` players: {state:?}, {ais:?}."
+            "the number of `Ai`s must be equal to the number of `Local(Ai)` players: {state:?}, {ais:?}"
         );
         assert!(
             !ais.iter()
                 .any(|ai| state.players[ai.player_id().idx].typ != Local(LocalPlayerType::Ai)),
-            "Each passed `Ai` must correspond to a `Local(Ai)` player: {state:?}, {ais:?}."
+            "each passed `Ai` must correspond to a `Local(Ai)` player: {state:?}, {ais:?}"
         );
         Self { state, logic, ais }
     }

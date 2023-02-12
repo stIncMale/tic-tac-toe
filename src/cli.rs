@@ -40,7 +40,7 @@ fn command() -> Command {
         .help_template(
             "{name} {version}\n\
             \n\
-            {about}{author}\n\
+            {about}{author}.\n\
             \n\
             {usage-heading}\n\
             {usage}\n\
@@ -112,7 +112,7 @@ impl ParsedArgs {
         if arg_matches.get_flag(DEDICATED) {
             let listen: SocketAddr = arg_matches
                 .get_one::<SocketAddr>(LISTEN)
-                .map_or_else(|| panic!("{LISTEN} must be present."), ToOwned::to_owned);
+                .map_or_else(|| panic!("`{LISTEN}` must be present"), ToOwned::to_owned);
             Ok(Dedicated { listen })
         } else {
             Ok(Interactive)

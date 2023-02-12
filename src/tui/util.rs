@@ -10,50 +10,84 @@ use cursive::{
 };
 use xxhash_rust::xxh3::Xxh3Builder;
 
-use crate::tui::EXIT_MENU_ITEM_LABEL;
+use crate::tui::{
+    menu,
+    util::MenuItemSwitchState::{Disabled, Enabled},
+};
 
-struct MenuLeafItemsState(HashMap<String, bool, Xxh3Builder>);
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum MenuItemSwitchState {
+    Enabled,
+    Disabled,
+}
 
-struct MenuLeafItemsStateBuilder(HashMap<String, bool, Xxh3Builder>);
+impl From<bool> for MenuItemSwitchState {
+    fn from(value: bool) -> Self {
+        if value {
+            Enabled
+        } else {
+            Disabled
+        }
+    }
+}
 
-impl MenuLeafItemsStateBuilder {
+impl From<MenuItemSwitchState> for bool {
+    fn from(value: MenuItemSwitchState) -> Self {
+        value == Enabled
+    }
+}
+
+#[derive(Debug)]
+struct MenuItemsState(HashMap<String, MenuItemSwitchState, Xxh3Builder>);
+
+#[derive(Debug)]
+struct MenuItemsStateBuilder(HashMap<String, MenuItemSwitchState, Xxh3Builder>);
+
+impl MenuItemsStateBuilder {
     fn new() -> Self {
         Self(HashMap::with_hasher(Xxh3Builder::new()))
     }
 
-    fn add(&mut self, label: &str, enabled: bool) {
+    fn add(&mut self, label: &str, enabled: MenuItemSwitchState) {
         assert!(
             self.0.insert(label.to_owned(), enabled).is_none(),
-            "Duplicate menu item label: {label:?}"
+            "duplicate menu item label: {label:?}"
         );
     }
 
-    fn build(self) -> MenuLeafItemsState {
-        MenuLeafItemsState(self.0)
+    fn build(self) -> MenuItemsState {
+        MenuItemsState(self.0)
     }
 }
 
-pub struct MenuLeafItemsStateSwitcher {
-    orig_state: Option<MenuLeafItemsState>,
+#[derive(Debug)]
+pub struct MenuItemsStateSwitcher {
+    orig_state: Option<MenuItemsState>,
 }
 
-impl MenuLeafItemsStateSwitcher {
+impl MenuItemsStateSwitcher {
     pub fn new() -> Self {
         Self { orig_state: None }
     }
 
-    pub fn disable_all(&mut self, menu: &mut Menubar) {
-        self.disable(menu, |_| Some(false));
+    pub fn with_all_disabled(menu: &mut Menubar) -> Self {
+        let mut new = MenuItemsStateSwitcher::new();
+        new.disable_all(menu);
+        new
     }
 
-    pub fn disable(
+    pub fn disable_all(&mut self, menu: &mut Menubar) {
+        self.switch(menu, |_| Some(Disabled));
+    }
+
+    pub fn switch(
         &mut self,
         menu: &mut Menubar,
-        state_computer: impl Fn(&str) -> Option<bool> + Clone,
+        state_computer: impl Fn(&str) -> Option<MenuItemSwitchState> + Clone,
     ) {
         assert!(self.orig_state.is_none());
-        self.orig_state = MenuLeafItemsStateSwitcher::set_menu_state(menu, true, |label| {
-            if label == EXIT_MENU_ITEM_LABEL {
+        self.orig_state = MenuItemsStateSwitcher::set_menu_items_state(menu, true, |label| {
+            if label == menu::item::EXIT_LABEL {
                 None
             } else {
                 state_computer(label)
@@ -62,49 +96,53 @@ impl MenuLeafItemsStateSwitcher {
     }
 
     pub fn restore(&self, menu: &mut Menubar) {
-        let orig_state = self.orig_state.as_ref().expect("Should be `Some`.");
-        MenuLeafItemsStateSwitcher::set_menu_state(menu, false, |label| {
+        let orig_state = self
+            .orig_state
+            .as_ref()
+            .expect("`restore` should be called after `disable`");
+        MenuItemsStateSwitcher::set_menu_items_state(menu, false, |label| {
             orig_state.0.get(label).copied()
         });
     }
 
-    /// Returns the original state of [`Leaf`] menu items iff `record_orig_state`.
-    fn set_menu_state(
+    /// Returns the original state of the menu items iff `record_orig_state`.
+    fn set_menu_items_state(
         menu: &mut Menubar,
         record_orig_state: bool,
-        state_computer: impl Fn(&str) -> Option<bool> + Clone,
-    ) -> Option<MenuLeafItemsState> {
+        state_computer: impl Fn(&str) -> Option<MenuItemSwitchState> + Clone,
+    ) -> Option<MenuItemsState> {
         let mut orig_state_builder = if record_orig_state {
-            Some(MenuLeafItemsStateBuilder::new())
+            Some(MenuItemsStateBuilder::new())
         } else {
             None
         };
         for i in 0..menu.len() {
             if let Some(tree) = menu.get_subtree(i) {
-                MenuLeafItemsStateSwitcher::set_leaf_items_state(
+                MenuItemsStateSwitcher::set_tree_items_state(
                     tree,
                     &mut orig_state_builder,
                     state_computer.clone(),
                 );
             }
         }
-        orig_state_builder.map(MenuLeafItemsStateBuilder::build)
+        orig_state_builder.map(MenuItemsStateBuilder::build)
     }
 
-    fn set_leaf_items_state(
+    fn set_tree_items_state(
         tree: &mut Tree,
-        orig_state_builder: &mut Option<MenuLeafItemsStateBuilder>,
-        state_computer: impl Fn(&str) -> Option<bool> + Clone,
+        orig_state_builder: &mut Option<MenuItemsStateBuilder>,
+        state_computer: impl Fn(&str) -> Option<MenuItemSwitchState> + Clone,
     ) {
         tree.children.iter_mut().for_each(|item| {
             if let Some(tree) = item.as_subtree() {
-                MenuLeafItemsStateSwitcher::set_leaf_items_state(
+                MenuItemsStateSwitcher::set_tree_items_state(
                     tree,
                     orig_state_builder,
                     state_computer.clone(),
                 );
-            } else if let Some(orig_state) =
-                MenuLeafItemsStateSwitcher::set_leaf_item_state(item, state_computer.clone())
+            }
+            if let Some(orig_state) =
+                MenuItemsStateSwitcher::set_item_state(item, state_computer.clone())
             {
                 if let Some(orig_state_builder) = orig_state_builder {
                     orig_state_builder.add(item.label(), orig_state);
@@ -113,24 +151,29 @@ impl MenuLeafItemsStateSwitcher {
         });
     }
 
-    /// Returns the original `item` state iff the `item` is [`Leaf`].
-    fn set_leaf_item_state(
+    /// Returns the original `item` state.
+    fn set_item_state(
         item: &mut Item,
-        state_computer: impl FnOnce(&str) -> Option<bool>,
-    ) -> Option<bool> {
+        state_computer: impl FnOnce(&str) -> Option<MenuItemSwitchState>,
+    ) -> Option<MenuItemSwitchState> {
         match item {
             Leaf {
                 ref mut enabled,
                 ref label,
                 ..
+            }
+            | Subtree {
+                ref mut enabled,
+                ref label,
+                ..
             } => {
-                let orig_state = *enabled;
+                let orig_state: MenuItemSwitchState = (*enabled).into();
                 if let Some(computed_state) = state_computer(label.source()) {
-                    *enabled = computed_state;
+                    *enabled = computed_state.into();
                 }
                 Some(orig_state)
             }
-            Subtree { .. } | Delimiter => None,
+            Delimiter => None,
         }
     }
 }

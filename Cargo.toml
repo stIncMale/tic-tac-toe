@@ -7,7 +7,6 @@ authors = ["Valentin Kovalenko <https://www.kovalenko.link>"]
 description = "A multiplayer turn-based game."
 readme = "readme.md"
 license = "WTFPL"
-homepage = "https://github.com/stIncMale/tic-tac-toe"
 repository = "https://github.com/stIncMale/tic-tac-toe"
 keywords = ["tui"]
 categories = ["games"]

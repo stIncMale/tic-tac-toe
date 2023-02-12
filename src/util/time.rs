@@ -1,7 +1,7 @@
 use core::time::Duration;
 use std::time::Instant;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Time {
     pub v: Duration,
 }
@@ -35,7 +35,7 @@ impl AdvanceableClock {
     }
 }
 
-#[derive(Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Default)]
 pub struct Timer {
     start: Option<Time>,
     duration: Duration,
@@ -43,7 +43,8 @@ pub struct Timer {
 
 impl Timer {
     pub fn new() -> Self {
-        Timer::default()
+        // TODO replace Self:: with T:: everywhere
+        Self::default()
     }
 
     pub fn new_set(start: Time, duration: Duration) -> Self {

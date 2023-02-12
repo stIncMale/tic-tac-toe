@@ -56,13 +56,13 @@ impl GameView {
         assert_eq!(
             game_world.state().players.len(),
             2,
-            "For more players TUI would have been implemented quite differently."
+            "for more players TUI would have been implemented quite differently"
         );
         assert!(
             !action_queues
                 .iter()
                 .any(|aq| game_world.state().players[aq.player_id().idx].typ != Local(Human)),
-            "The provided actions queues must correspond to `Local(Human)` players: {game_world:?}, {action_queues:?}."
+            "the provided actions queues must correspond to `Local(Human)` players: {game_world:?}, {action_queues:?}"
         );
         let action_queues = {
             let mut map = HashMap::with_hasher(Xxh3Builder::new());
@@ -89,18 +89,14 @@ impl GameView {
                 .child(Panel::new(GameInfoView::new(&game_world)))
                 .child(
                     LinearLayout::horizontal()
-                        .child(GameView::player_layout(
+                        .child(Self::player_layout(
                             players_local_human_first[0].id,
                             &game_world,
                             &action_queues,
                             &clock,
                         ))
-                        .child(GameView::game_board_layout(
-                            &game_world,
-                            &action_queues,
-                            &clock,
-                        ))
-                        .child(GameView::player_layout(
+                        .child(Self::game_board_layout(&game_world, &action_queues, &clock))
+                        .child(Self::player_layout(
                             players_local_human_first[1].id,
                             &game_world,
                             &action_queues,
@@ -112,7 +108,7 @@ impl GameView {
                 layout.add_child(
                     Panel::new(
                         LocalAiCommonControlsView::new(&game_world)
-                            .with_name(GameView::AI_COMMON_CTRLS_VIEW_ID),
+                            .with_name(Self::AI_COMMON_CTRLS_VIEW_ID),
                     )
                     .title("Common AI controls")
                     .title_position(HAlign::Left),
@@ -156,33 +152,28 @@ impl GameView {
         game_world: &GameWorld,
         action_queues: &ActionQueues,
         clock: &Clock,
-    ) -> Box<dyn View> {
+    ) -> impl View {
         let title = game_world.borrow().state().players[player_id.idx].to_string();
         match game_world.borrow().state().players[player_id.idx].typ {
-            Local(Human) => Box::new(
-                Panel::new(
-                    LinearLayout::vertical()
-                        .child(PlayerInfoView::new(player_id, game_world, clock))
-                        .child(
-                            Panel::new(LocalHumanControlsView::new(
-                                game_world,
-                                &action_queues[&player_id],
-                            ))
-                            .title("Controls")
-                            .title_position(HAlign::Left),
-                        ),
-                )
-                .title(title)
-                .title_position(HAlign::Left),
-            ),
-            Local(Ai) | _Remote => Box::new(
-                Panel::new(
-                    LinearLayout::vertical()
-                        .child(PlayerInfoView::new(player_id, game_world, clock)),
-                )
-                .title(title)
-                .title_position(HAlign::Left),
-            ),
+            Local(Human) => Panel::new(
+                LinearLayout::vertical()
+                    .child(PlayerInfoView::new(player_id, game_world, clock))
+                    .child(
+                        Panel::new(LocalHumanControlsView::new(
+                            game_world,
+                            &action_queues[&player_id],
+                        ))
+                        .title("Controls")
+                        .title_position(HAlign::Left),
+                    ),
+            )
+            .title(title)
+            .title_position(HAlign::Left),
+            Local(Ai) | _Remote => Panel::new(
+                LinearLayout::vertical().child(PlayerInfoView::new(player_id, game_world, clock)),
+            )
+            .title(title)
+            .title_position(HAlign::Left),
         }
     }
 
@@ -191,7 +182,7 @@ impl GameView {
         let maximise_advance = self
             .layout
             .call_on_name(
-                GameView::AI_COMMON_CTRLS_VIEW_ID,
+                Self::AI_COMMON_CTRLS_VIEW_ID,
                 |view: &mut NamedView<LocalAiCommonControlsView>| {
                     view.get_mut().unleashed_promptness
                 },
@@ -508,8 +499,8 @@ impl LocalHumanControlsView {
             .child(ResizedView::with_full_width(DummyView {}))
             .child(
                 LinearLayout::vertical()
-                    .child(LocalHumanControlsView::go_btn(action_queue))
-                    .child(LocalHumanControlsView::surrender_btn(action_queue)),
+                    .child(Self::go_btn(action_queue))
+                    .child(Self::surrender_btn(action_queue)),
             )
             .child(ResizedView::with_full_width(DummyView {}));
         Self {
@@ -521,24 +512,16 @@ impl LocalHumanControlsView {
 
     fn go_btn(action_queue: &Rc<DefaultActionQueue>) -> NamedView<EnableableView<Button>> {
         let action_queue = Rc::clone(action_queue);
-        LocalHumanControlsView::btn_disabled_on_cb(
-            LocalHumanControlsView::GO_BTN_ID,
-            "Ready/Continue",
-            move |_tui| {
-                action_queue.add(Action::Ready);
-            },
-        )
+        Self::btn_disabled_on_cb(Self::GO_BTN_ID, "Ready/Continue", move |_| {
+            action_queue.add(Action::Ready);
+        })
     }
 
     fn surrender_btn(action_queue: &Rc<DefaultActionQueue>) -> NamedView<EnableableView<Button>> {
         let action_queue = Rc::clone(action_queue);
-        LocalHumanControlsView::btn_disabled_on_cb(
-            LocalHumanControlsView::SURRENDER_BTN_ID,
-            "Surrender the round",
-            move |_tui| {
-                action_queue.add(Action::Surrender);
-            },
-        )
+        Self::btn_disabled_on_cb(Self::SURRENDER_BTN_ID, "Surrender the round", move |_| {
+            action_queue.add(Action::Surrender);
+        })
     }
 
     fn layout_go_btn(&mut self) {
@@ -551,7 +534,7 @@ impl LocalHumanControlsView {
                 || Logic::<DefaultActionQueue>::is_game_over(game_state)
         };
         self.layout.call_on_name(
-            LocalHumanControlsView::GO_BTN_ID,
+            Self::GO_BTN_ID,
             |btn: &mut NamedView<EnableableView<Button>>| {
                 if enable {
                     btn.get_mut().enable();
@@ -565,7 +548,7 @@ impl LocalHumanControlsView {
     fn layout_surrender_btn(&mut self) {
         let enable = self.game_world.borrow().state().phase == Inround;
         self.layout.call_on_name(
-            LocalHumanControlsView::SURRENDER_BTN_ID,
+            Self::SURRENDER_BTN_ID,
             |btn: &mut NamedView<EnableableView<Button>>| {
                 if enable {
                     btn.get_mut().enable();
@@ -576,15 +559,11 @@ impl LocalHumanControlsView {
         );
     }
 
-    fn btn_disabled_on_cb<S, F>(
+    fn btn_disabled_on_cb(
         id: &'static str,
-        label: S,
-        cb: F,
-    ) -> NamedView<EnableableView<Button>>
-    where
-        S: Into<String>,
-        F: 'static + Fn(&mut Cursive),
-    {
+        label: impl Into<String>,
+        cb: impl 'static + Fn(&mut Cursive),
+    ) -> NamedView<EnableableView<Button>> {
         let mut btn = {
             EnableableView::new(Button::new(label, move |tui| {
                 cb(tui);
@@ -652,7 +631,7 @@ impl LocalAiCommonControlsView {
         let promtpness_slider = {
             let mut slider = SliderView::new(Orientation::Horizontal, 19);
             slider.set_value(slider.get_max_value() / 2);
-            slider.with_name(LocalAiCommonControlsView::PROMPTNESS_SLIDER_ID)
+            slider.with_name(Self::PROMPTNESS_SLIDER_ID)
         };
         let promptness_view_content = TextContent::new("");
         let centering_layout = LinearLayout::horizontal()
@@ -679,14 +658,14 @@ impl LocalAiCommonControlsView {
             let (promptness, promptness_max) = self
                 .layout
                 .call_on_name(
-                    LocalAiCommonControlsView::PROMPTNESS_SLIDER_ID,
+                    Self::PROMPTNESS_SLIDER_ID,
                     |named_slider: &mut NamedView<SliderView>| {
                         let slider = named_slider.get_mut();
                         let slider_max_value = slider.get_max_value();
                         assert_eq!(
                             slider_max_value & 1,
                             1,
-                            "The implementation expects an odd value."
+                            "the implementation expects an odd value"
                         );
                         let slider_half_max_value = slider.get_max_value() / 2;
                         (
@@ -724,7 +703,7 @@ impl LocalAiCommonControlsView {
                 let txt_promptness_width = UnicodeWidthStr::width(txt_promptness.as_str());
                 assert!(
                     txt_promptness_width <= txt_promptness_max_width,
-                    "Numeric promptness representation should not be longer than a verbal one: {txt_promptness_width:?}, {txt_promptness_max_width:?}."
+                    "numeric promptness representation should not be longer than a verbal one: {txt_promptness_width:?}, {txt_promptness_max_width:?}"
                 );
                 (delay, Cow::from(txt_promptness))
             };
@@ -772,5 +751,37 @@ impl View for LocalAiCommonControlsView {
 
     fn important_area(&self, view_size: Vec2) -> Rect {
         self.layout.important_area(view_size)
+    }
+}
+
+#[derive(Default)]
+pub struct SplashScreenView {
+    size: Vec2,
+}
+
+impl SplashScreenView {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl View for SplashScreenView {
+    fn draw(&self, printer: &Printer) {
+        let txt = "Press <Esc> to activate the menu bar.";
+        printer.print(
+            Vec2::new(
+                HAlign::Center.get_offset(UnicodeWidthStr::width(txt), self.size.x),
+                HAlign::Center.get_offset(1, self.size.y),
+            ),
+            txt,
+        );
+    }
+
+    fn layout(&mut self, view_size: Vec2) {
+        self.size = view_size;
+    }
+
+    fn required_size(&mut self, constraint: Vec2) -> Vec2 {
+        constraint
     }
 }

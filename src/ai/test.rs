@@ -59,7 +59,7 @@ mod Random {
             }
             assert!(
                 Logic::<DefaultActionQueue>::is_game_over(world.state()),
-                "RNG seeds: {:?}, {:?}.",
+                "{:?}, {:?}",
                 (p0_ai_rng_seed, p1_ai_rng_seed),
                 world
             );

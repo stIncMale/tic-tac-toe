@@ -9,6 +9,7 @@
     clippy::std_instead_of_core,
     clippy::std_instead_of_alloc,
     clippy::alloc_instead_of_core,
+    // clippy::use_self, TODO uncomment and fix the code
     rustdoc::invalid_codeblock_attributes,
     rustdoc::invalid_html_tags
 )]
@@ -46,7 +47,7 @@ fn main() -> ExitCode {
             }
         }
         Err(e) => {
-            e.print().expect("Printing an error should not fail.");
+            e.print().expect("printing an error should not fail");
             match e.kind() {
                 DisplayHelp | DisplayVersion => ExitCode::SUCCESS,
                 _ => ExitCode::from(exit_code::INVALID_ARGS),
