@@ -10,7 +10,6 @@ use cursive::{
 
 use crate::{
     tui::{
-        menu::item,
         util::{MenuItemSwitchState::Disabled, MenuItemsStateSwitcher},
         view::SplashScreenView,
     },
@@ -54,8 +53,8 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                         .leaf("Vs. AI", |_| todo!())
                         .leaf("AI vs. AI", |tui| {
                             menu::callback(
-                                ("AI vs. AI options", item::ai_vs_ai::game_opts_dlg_content()),
-                                (item::ai_vs_ai::game_opts, item::ai_vs_ai::start),
+                                ("AI vs. AI options", menu::ai_vs_ai::game_opts_dlg_content()),
+                                (menu::ai_vs_ai::game_opts, menu::ai_vs_ai::start),
                                 tui,
                             );
                         }),
@@ -67,12 +66,12 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                         .leaf("Connect", |_| todo!())
                         .leaf("Host", |_| todo!()),
                 )
-                .leaf(item::STOP_LABEL, |_| todo!())
-                .leaf(item::EXIT_LABEL, Cursive::quit),
+                .leaf(menu::STOP_LABEL, |_| todo!())
+                .leaf(menu::EXIT_LABEL, Cursive::quit),
         )
         .add_subtree("Help", Tree::new().leaf("About", show_about_dlg));
     MenuItemsStateSwitcher::new().switch(tui.menubar(), |lbl| {
-        if lbl == item::STOP_LABEL {
+        if lbl == menu::STOP_LABEL {
             Some(Disabled)
         } else {
             None

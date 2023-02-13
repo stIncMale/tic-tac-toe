@@ -10,13 +10,10 @@ use cursive::{
 
 use crate::{game::State, tui::util::MenuItemsStateSwitcher};
 
-pub mod item {
-    pub mod ai_vs_ai;
+pub mod ai_vs_ai;
 
-    pub const EXIT_LABEL: &str = "Exit";
-    pub const STOP_LABEL: &str = "Stop/disconnect";
-}
-
+pub const EXIT_LABEL: &str = "Exit";
+pub const STOP_LABEL: &str = "Stop/disconnect";
 const ROUNDS_GAME_OPTION_VIEW_ID: &str = "ROUNDS_GAME_OPTION_VIEW_ID";
 const ROUNDS_GAME_OPTION_NAME: &str = "Number of rounds";
 

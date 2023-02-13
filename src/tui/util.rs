@@ -87,7 +87,7 @@ impl MenuItemsStateSwitcher {
     ) {
         assert!(self.orig_state.is_none());
         self.orig_state = MenuItemsStateSwitcher::set_menu_items_state(menu, true, |label| {
-            if label == menu::item::EXIT_LABEL {
+            if label == menu::EXIT_LABEL {
                 None
             } else {
                 state_computer(label)
