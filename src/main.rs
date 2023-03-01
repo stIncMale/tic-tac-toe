@@ -9,7 +9,7 @@
     clippy::std_instead_of_core,
     clippy::std_instead_of_alloc,
     clippy::alloc_instead_of_core,
-    // clippy::use_self, TODO uncomment and fix the code
+    clippy::use_self,
     rustdoc::invalid_codeblock_attributes,
     rustdoc::invalid_html_tags
 )]
@@ -36,8 +36,10 @@ mod exit_code {
     pub const INVALID_ARGS: u8 = 2;
 }
 
+// TODO use https://crates.io/crates/human-panic?
+// TODO use https://crates.io/crates/crossbeam-channel or https://crates.io/crates/signal-hook, or https://rust-cli.github.io/book/in-depth/signals.html#using-futures-and-streams for async
 fn main() -> ExitCode {
-    match ParsedArgs::from_iterator(env::args_os()) {
+    match ParsedArgs::try_from_iterator(env::args_os()) {
         Ok(parsed_args) => {
             if let Err(e) = run(parsed_args) {
                 eprint!("{e}");

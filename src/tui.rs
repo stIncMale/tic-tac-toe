@@ -21,6 +21,7 @@ mod menu;
 mod util;
 mod view;
 
+// TODO use https://crates.io/crates/anyhow?
 pub fn run() -> Result<(), Box<dyn Error>> {
     let mut tui = Cursive::new();
     {

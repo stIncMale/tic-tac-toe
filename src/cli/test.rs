@@ -26,7 +26,7 @@ mod ParsedArgs {
             listen: "[::]:2020".to_socket_addrs().unwrap().next().unwrap()
         })]
     fn from_iterator__Ok(args: &[&str], expected: &ParsedArgs) {
-        assert_eq!(ParsedArgs::from_iterator(args).unwrap(), *expected);
+        assert_eq!(ParsedArgs::try_from_iterator(args).unwrap(), *expected);
     }
 
     #[test_case(
@@ -52,7 +52,7 @@ mod ParsedArgs {
         ErrorKind::MissingRequiredArgument)]
     fn from_iterator__Err(args: &[&str], expected: ErrorKind) {
         assert_eq!(
-            ParsedArgs::from_iterator(args)
+            ParsedArgs::try_from_iterator(args)
                 .err()
                 .map(|e| e.kind())
                 .unwrap(),

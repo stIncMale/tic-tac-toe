@@ -9,7 +9,7 @@
     clippy::std_instead_of_core,
     clippy::std_instead_of_alloc,
     clippy::alloc_instead_of_core,
-    // clippy::use_self,
+    clippy::use_self,
     rustdoc::invalid_codeblock_attributes,
     rustdoc::invalid_html_tags
 )]

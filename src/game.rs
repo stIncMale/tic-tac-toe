@@ -29,8 +29,8 @@ pub enum Mark {
 impl Display for Mark {
     fn fmt(&self, f: &mut Formatter) -> Result {
         f.write_str(match self {
-            Mark::X => "X",
-            Mark::O => "O",
+            Self::X => "X",
+            Self::O => "O",
         })
     }
 }
@@ -131,7 +131,7 @@ pub struct Cell {
 impl Cell {
     /// # Panics
     ///
-    /// If the either `x` or `y` is greater than or equal to [`Board::SIZE`].
+    /// If either `x` or `y` is greater than or equal to [`Board::SIZE`].
     pub fn new(x: usize, y: usize) -> Self {
         assert!(x < Board::SIZE, "{x:?}, {:?}", Board::SIZE);
         assert!(y < Board::SIZE, "{y:?}, {:?}", Board::SIZE);
@@ -221,7 +221,7 @@ impl State {
     /// # Panics
     ///
     /// If the index of an item in `players` is not equal to the corresponding [`PlayerId`].
-    pub fn new(players: [Player; State::PLAYER_COUNT], rounds: u32) -> Self {
+    pub fn new(players: [Player; Self::PLAYER_COUNT], rounds: u32) -> Self {
         for (idx, player) in players.iter().enumerate() {
             assert_eq!(player.id, idx);
         }
@@ -244,8 +244,10 @@ impl State {
     }
 }
 
-impl PartialEq<State> for State {
-    fn eq(&self, other: &State) -> bool {
+impl PartialEq<Self> for State {
+    // TODO check intra doc link
+    /// This method is used in tests and disregards [`State::clock`].
+    fn eq(&self, other: &Self) -> bool {
         self.board == other.board
             && self.players == other.players
             && self.phase == other.phase
@@ -334,11 +336,11 @@ where
             if state.required_ready.contains(&player_id) {
                 if let Some(action) = self.action_queues[player_id.idx].pop() {
                     assert!(
-                        !Logic::<A>::is_game_over(state),
+                        !Self::is_game_over(state),
                         "the game ended too soon: {state:?}, {player_id:?}, {action:?}"
                     );
                     if action == Ready {
-                        Logic::<A>::ready(state, player_id);
+                        Self::ready(state, player_id);
                     } else {
                         panic!("unexpected action: {state:?}, {player_id:?}, {action:?}")
                     }
@@ -349,14 +351,17 @@ where
 
     fn advance_inround(&self, state: &mut State) {
         let player_id = state.turn();
+        // TODO Add a hard-coded limit on how many actions one may expect here.
+        // If it's violated, the player is likely malicious and we need to kick him.
+        // This method should return a `Result`.
         while let Some(action) = self.action_queues[player_id.idx].pop() {
             assert!(
-                !Logic::<A>::is_game_over(state),
+                !Self::is_game_over(state),
                 "the game ended too soon: {state:?}, {action:?}"
             );
             match action {
-                Surrender => Logic::<A>::surrender(state),
-                Occupy(cell) => Logic::<A>::occupy(state, &cell),
+                Surrender => Self::surrender(state),
+                Occupy(cell) => Self::occupy(state, &cell),
                 Ready => panic!("unexpected action: {state:?}, {action:?}"),
             }
             if state.turn() != player_id || state.phase != Inround {
@@ -372,7 +377,7 @@ where
         );
         state.required_ready.remove(&player_id);
         if state.required_ready.is_empty() {
-            Logic::<A>::start_round(state);
+            Self::start_round(state);
         }
     }
 
@@ -385,16 +390,16 @@ where
         assert_eq!(state.phase, Inround);
         let idx_other_player = (state.turn().idx + 1) % state.players.len();
         state.players[idx_other_player].wins += 1;
-        Logic::<A>::end_round(state);
+        Self::end_round(state);
     }
 
     fn occupy(state: &mut State, cell: &Cell) {
         assert_eq!(state.phase, Inround);
         state.board.set(cell, state.turn());
-        if let Some(win_line) = Logic::<A>::check_win(&state.board, cell) {
-            Logic::<A>::win(state, win_line);
-        } else if Logic::<A>::last_step(state.step, &state.board) {
-            Logic::<A>::draw(state);
+        if let Some(win_line) = Self::check_win(&state.board, cell) {
+            Self::win(state, win_line);
+        } else if Self::last_step(state.step, &state.board) {
+            Self::draw(state);
         } else {
             state.step += 1;
         }
@@ -416,7 +421,7 @@ where
 
     fn end_round(state: &mut State) {
         state.phase = Outround;
-        if !Logic::<A>::is_game_over(state) {
+        if !Self::is_game_over(state) {
             state
                 .required_ready
                 .extend(state.players.iter().map(|p| p.id));
@@ -464,11 +469,11 @@ where
     fn win(state: &mut State, win_line: Line) {
         state.players[state.turn().idx].wins += 1;
         state.win_line = Some(win_line);
-        Logic::<A>::end_round(state);
+        Self::end_round(state);
     }
 
     fn draw(state: &mut State) {
-        Logic::<A>::end_round(state);
+        Self::end_round(state);
     }
 
     pub fn is_game_over(state: &State) -> bool {

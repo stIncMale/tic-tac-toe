@@ -60,18 +60,18 @@ impl MenuItemsStateBuilder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MenuItemsStateSwitcher {
     orig_state: Option<MenuItemsState>,
 }
 
 impl MenuItemsStateSwitcher {
     pub fn new() -> Self {
-        Self { orig_state: None }
+        Self::default()
     }
 
     pub fn with_all_disabled(menu: &mut Menubar) -> Self {
-        let mut new = MenuItemsStateSwitcher::new();
+        let mut new = Self::new();
         new.disable_all(menu);
         new
     }
@@ -86,7 +86,7 @@ impl MenuItemsStateSwitcher {
         state_computer: impl Fn(&str) -> Option<MenuItemSwitchState> + Clone,
     ) {
         assert!(self.orig_state.is_none());
-        self.orig_state = MenuItemsStateSwitcher::set_menu_items_state(menu, true, |label| {
+        self.orig_state = Self::set_menu_items_state(menu, true, |label| {
             if label == menu::EXIT_LABEL {
                 None
             } else {
@@ -100,9 +100,7 @@ impl MenuItemsStateSwitcher {
             .orig_state
             .as_ref()
             .expect("`restore` should be called after `disable`");
-        MenuItemsStateSwitcher::set_menu_items_state(menu, false, |label| {
-            orig_state.0.get(label).copied()
-        });
+        Self::set_menu_items_state(menu, false, |label| orig_state.0.get(label).copied());
     }
 
     /// Returns the original state of the menu items iff `record_orig_state`.
@@ -118,11 +116,7 @@ impl MenuItemsStateSwitcher {
         };
         for i in 0..menu.len() {
             if let Some(tree) = menu.get_subtree(i) {
-                MenuItemsStateSwitcher::set_tree_items_state(
-                    tree,
-                    &mut orig_state_builder,
-                    state_computer.clone(),
-                );
+                Self::set_tree_items_state(tree, &mut orig_state_builder, state_computer.clone());
             }
         }
         orig_state_builder.map(MenuItemsStateBuilder::build)
@@ -135,15 +129,9 @@ impl MenuItemsStateSwitcher {
     ) {
         tree.children.iter_mut().for_each(|item| {
             if let Some(tree) = item.as_subtree() {
-                MenuItemsStateSwitcher::set_tree_items_state(
-                    tree,
-                    orig_state_builder,
-                    state_computer.clone(),
-                );
+                Self::set_tree_items_state(tree, orig_state_builder, state_computer.clone());
             }
-            if let Some(orig_state) =
-                MenuItemsStateSwitcher::set_item_state(item, state_computer.clone())
-            {
+            if let Some(orig_state) = Self::set_item_state(item, state_computer.clone()) {
                 if let Some(orig_state_builder) = orig_state_builder {
                     orig_state_builder.add(item.label(), orig_state);
                 }

@@ -103,7 +103,7 @@ impl ParsedArgs {
     /// # Panics
     ///
     /// If the source code has a bug.
-    pub fn from_iterator<I, T>(args: I) -> Result<ParsedArgs, Error>
+    pub fn try_from_iterator<I, T>(args: I) -> Result<Self, Error>
     where
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,

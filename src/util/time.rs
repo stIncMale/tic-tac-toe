@@ -43,7 +43,6 @@ pub struct Timer {
 
 impl Timer {
     pub fn new() -> Self {
-        // TODO replace Self:: with T:: everywhere
         Self::default()
     }
 
@@ -56,7 +55,7 @@ impl Timer {
 
     pub fn is_expired_or_unset(&self, t: Time) -> bool {
         self.start
-            .map_or(true, |start| Timer::is_expired(start, self.duration, t))
+            .map_or(true, |start| Self::is_expired(start, self.duration, t))
     }
 
     pub fn check_expired_then_unset_if_true_or_set_if_unset<F>(
@@ -68,7 +67,7 @@ impl Timer {
         F: FnOnce() -> Duration,
     {
         match self.start {
-            Some(start) if Timer::is_expired(start, self.duration, t) => {
+            Some(start) if Self::is_expired(start, self.duration, t) => {
                 self.unset();
                 true
             }

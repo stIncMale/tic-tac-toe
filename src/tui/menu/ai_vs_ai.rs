@@ -28,12 +28,12 @@ pub struct GameOpts {
 }
 
 impl GameOpts {
-    fn try_from_parsed(
+    fn from_parsed(
         (rounds_option_name, rounds): (impl Display, Result<u32, ParseIntError>),
         tui: &mut Cursive,
-    ) -> Option<GameOpts> {
+    ) -> Option<Self> {
         if let Ok(rounds) = rounds {
-            Some(GameOpts { _rounds: rounds })
+            Some(Self { _rounds: rounds })
         } else if let Err(err) = rounds {
             show_game_option_err_dlg(tui, rounds_option_name, err);
             None
@@ -48,7 +48,7 @@ pub fn game_opts_dlg_content() -> LinearLayout {
 }
 
 pub fn game_opts(tui: &mut Cursive) -> Option<GameOpts> {
-    GameOpts::try_from_parsed(
+    GameOpts::from_parsed(
         (
             ROUNDS_GAME_OPTION_NAME,
             tui.call_on_name(

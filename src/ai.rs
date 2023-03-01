@@ -54,7 +54,7 @@ impl RandomAi {
         }
         if self.can_act(state) {
             self.action_queue
-                .add(Action::Occupy(RandomAi::decide_cell(&mut self.rng, state)));
+                .add(Action::Occupy(Self::decide_cell(&mut self.rng, state)));
         }
     }
 
@@ -82,7 +82,7 @@ impl RandomAi {
                 .act_timer
                 .check_expired_then_unset_if_true_or_set_if_unset(
                     state.clock.as_ref().unwrap().now(),
-                    || RandomAi::delay(self.base_act_delay, &mut self.rng),
+                    || Self::delay(self.base_act_delay, &mut self.rng),
                 )
     }
 
@@ -106,6 +106,6 @@ impl Ai for RandomAi {
     fn set_base_act_delay(&mut self, delay: Duration) {
         self.base_act_delay = delay;
         self.act_timer
-            .set_duration(RandomAi::delay(self.base_act_delay, &mut self.rng));
+            .set_duration(Self::delay(self.base_act_delay, &mut self.rng));
     }
 }
