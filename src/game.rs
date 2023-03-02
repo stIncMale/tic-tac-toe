@@ -63,7 +63,6 @@ impl Display for Player {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-// TODO refactor to use tuple struct
 pub struct PlayerId {
     pub idx: usize,
 }
@@ -245,7 +244,6 @@ impl State {
 }
 
 impl PartialEq<Self> for State {
-    // TODO check intra doc link
     /// This method is used in tests and disregards [`State::clock`].
     fn eq(&self, other: &Self) -> bool {
         self.board == other.board

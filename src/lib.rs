@@ -62,9 +62,10 @@ mod util;
 
 // TODO refactor when https://github.com/rust-lang/rust/issues/74465 is done,
 // also remove the once_cell dependency.
-static APP_INFO: Lazy<AppInfo> = Lazy::new(|| AppInfo {
+pub static APP_METADATA: Lazy<AppMetadata> = Lazy::new(|| AppMetadata {
     name: "Tic-tac-toe",
     version: env!("CARGO_PKG_VERSION"),
+    authors: env!("CARGO_PKG_AUTHORS"),
     homepage: env!("CARGO_PKG_REPOSITORY"),
     exe: {
         let fallback = "<game-executable>";
@@ -77,11 +78,12 @@ static APP_INFO: Lazy<AppInfo> = Lazy::new(|| AppInfo {
     },
 });
 
-struct AppInfo {
-    name: &'static str,
-    version: &'static str,
-    homepage: &'static str,
-    exe: String,
+pub struct AppMetadata {
+    pub name: &'static str,
+    pub version: &'static str,
+    pub authors: &'static str,
+    pub homepage: &'static str,
+    pub exe: String,
 }
 
 /// # Errors

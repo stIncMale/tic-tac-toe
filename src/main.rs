@@ -29,16 +29,16 @@
 use std::{env, process::ExitCode};
 
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
-use tic_tac_toe_lib::{cli::ParsedArgs, run};
+use tic_tac_toe_lib::{cli::ParsedArgs, run, APP_METADATA};
 
 /// Exit codes complementing the canonical ones in [`ExitCode`](std::process::ExitCode).
 mod exit_code {
     pub const INVALID_ARGS: u8 = 2;
 }
 
-// TODO use https://crates.io/crates/human-panic?
 // TODO use https://crates.io/crates/crossbeam-channel or https://crates.io/crates/signal-hook, or https://rust-cli.github.io/book/in-depth/signals.html#using-futures-and-streams for async
 fn main() -> ExitCode {
+    setup_panic();
     match ParsedArgs::try_from_iterator(env::args_os()) {
         Ok(parsed_args) => {
             if let Err(e) = run(parsed_args) {
@@ -56,4 +56,14 @@ fn main() -> ExitCode {
             }
         }
     }
+}
+
+#[allow(clippy::std_instead_of_core)]
+fn setup_panic() {
+    human_panic::setup_panic!(Metadata {
+        name: APP_METADATA.name.into(),
+        version: APP_METADATA.version.into(),
+        authors: APP_METADATA.authors.into(),
+        homepage: APP_METADATA.homepage.into(),
+    });
 }

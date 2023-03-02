@@ -13,7 +13,7 @@ use crate::{
         util::{MenuItemSwitchState::Disabled, MenuItemsStateSwitcher},
         view::SplashScreenView,
     },
-    APP_INFO,
+    APP_METADATA,
 };
 
 mod fx;
@@ -98,9 +98,9 @@ fn show_about_dlg(tui: &mut Cursive) {
             "{app} {version}.\n\
         \n\
         For more info run `{exe} --help`.",
-            app = APP_INFO.name,
-            version = APP_INFO.version,
-            exe = APP_INFO.exe
+            app = APP_METADATA.name,
+            version = APP_METADATA.version,
+            exe = APP_METADATA.exe
         ))
         .title("About")
         .button("Close", move |tui| {

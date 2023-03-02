@@ -2,7 +2,7 @@ use std::{ffi::OsString, net::SocketAddr};
 
 use clap::{crate_authors, crate_description, value_parser, Arg, ArgAction, Command, Error};
 
-use crate::{Dedicated, Interactive, APP_INFO};
+use crate::{Dedicated, Interactive, APP_METADATA};
 
 mod test;
 
@@ -30,11 +30,11 @@ fn command() -> Command {
         Homepage:\n    \
             <{homepage}>.",
         crate_description = crate_description!(),
-        homepage = APP_INFO.homepage
+        homepage = APP_METADATA.homepage
     );
-    Command::new(APP_INFO.name)
-        .bin_name(&APP_INFO.exe)
-        .version(APP_INFO.version)
+    Command::new(APP_METADATA.name)
+        .bin_name(&APP_METADATA.exe)
+        .version(APP_METADATA.version)
         .author(concat!("\nAuthors:\n    ", crate_authors!()))
         .about(about)
         .help_template(
