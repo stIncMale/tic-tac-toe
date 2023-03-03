@@ -2,12 +2,12 @@ use std::{ffi::OsString, net::SocketAddr};
 
 use clap::{crate_authors, crate_description, value_parser, Arg, ArgAction, Command, Error};
 
-use crate::{Dedicated, Interactive, APP_METADATA};
+use crate::{process::APP_METADATA, Dedicated, Interactive};
 
 mod test;
 
-const DEDICATED: &str = "dedicated";
-const LISTEN: &str = "listen";
+const DEDICATED_ARG_ID: &str = "TODO-dedicated";
+const LISTEN_ARG_ID: &str = "TODO-listen";
 
 fn command() -> Command {
     let about = format!(
@@ -25,7 +25,7 @@ fn command() -> Command {
             find other players and play with them.\n\
         \n\
         Warning:\n    \
-            The project is being developed, not all functionality is implemented.\n\
+            The project is being developed, unimplemented functionality is marked with \"TODO\".\n\
         \n\
         Homepage:\n    \
             <{homepage}>.",
@@ -33,7 +33,7 @@ fn command() -> Command {
         homepage = APP_METADATA.homepage
     );
     Command::new(APP_METADATA.name)
-        .bin_name(&APP_METADATA.exe)
+        .bin_name(APP_METADATA.exe)
         .version(APP_METADATA.version)
         .author(concat!("\nAuthors:\n    ", crate_authors!()))
         .about(about)
@@ -65,8 +65,8 @@ fn command() -> Command {
                 .help("Print version."),
         )
         .arg(
-            Arg::new(DEDICATED)
-                .long(DEDICATED)
+            Arg::new(DEDICATED_ARG_ID)
+                .long(DEDICATED_ARG_ID)
                 .required(false)
                 .action(ArgAction::SetTrue)
                 .help(
@@ -75,10 +75,10 @@ fn command() -> Command {
                 ),
         )
         .arg(
-            Arg::new(LISTEN)
-                .long(LISTEN)
+            Arg::new(LISTEN_ARG_ID)
+                .long(LISTEN_ARG_ID)
                 .required(false)
-                .requires(DEDICATED)
+                .requires(DEDICATED_ARG_ID)
                 .action(ArgAction::Set)
                 .value_parser(value_parser!(SocketAddr))
                 .default_value("127.0.0.1:2020")
@@ -109,10 +109,13 @@ impl ParsedArgs {
         T: Into<OsString> + Clone,
     {
         let arg_matches = command().try_get_matches_from(args)?;
-        if arg_matches.get_flag(DEDICATED) {
+        if arg_matches.get_flag(DEDICATED_ARG_ID) {
             let listen: SocketAddr = arg_matches
-                .get_one::<SocketAddr>(LISTEN)
-                .map_or_else(|| panic!("`{LISTEN}` must be present"), ToOwned::to_owned);
+                .get_one::<SocketAddr>(LISTEN_ARG_ID)
+                .map_or_else(
+                    || panic!("`{LISTEN_ARG_ID}` must be present"),
+                    ToOwned::to_owned,
+                );
             Ok(Dedicated { listen })
         } else {
             Ok(Interactive)

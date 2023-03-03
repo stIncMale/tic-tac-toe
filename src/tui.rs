@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use std::error::Error;
 
 use cursive::{
@@ -9,11 +10,11 @@ use cursive::{
 };
 
 use crate::{
+    process::{ExitSignal, APP_METADATA},
     tui::{
         util::{MenuItemSwitchState::Disabled, MenuItemsStateSwitcher},
         view::SplashScreenView,
     },
-    APP_METADATA,
 };
 
 mod fx;
@@ -22,7 +23,8 @@ mod util;
 mod view;
 
 // TODO use https://crates.io/crates/anyhow?
-pub fn run() -> Result<(), Box<dyn Error>> {
+// TODO use _exit_signal
+pub fn run(_exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
     let mut tui = Cursive::new();
     {
         // `Color::Black` works weirdly, using `Color::RgbLowRes` instead
@@ -51,7 +53,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                 .subtree(
                     "Singleplayer",
                     Tree::new()
-                        .leaf("Vs. AI", |_| todo!())
+                        .leaf("TODO Vs. AI", |_| todo!())
                         .leaf("AI vs. AI", |tui| {
                             menu::callback(
                                 ("AI vs. AI options", menu::ai_vs_ai::game_opts_dlg_content()),
@@ -63,9 +65,9 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                 .subtree(
                     "Multiplayer",
                     Tree::new()
-                        .leaf("Couch", |_| todo!())
-                        .leaf("Connect", |_| todo!())
-                        .leaf("Host", |_| todo!()),
+                        .leaf("TODO Couch", |_| todo!())
+                        .leaf("TODO Connect", |_| todo!())
+                        .leaf("TODO Host", |_| todo!()),
                 )
                 .leaf(menu::STOP_LABEL, |_| todo!())
                 .leaf(menu::EXIT_LABEL, Cursive::quit),

@@ -28,19 +28,21 @@
 // TODO remove when https://github.com/rust-lang/rust/issues/103765 is done,
 // also remove +nightly from cargo test, build, run commands.
 #![feature(error_in_core)]
+// TODO remove when https://github.com/rust-lang/rust/issues/102929 is done,
+// also remove +nightly from cargo test, build, run commands.
+#![feature(string_leak)]
 
 extern crate alloc;
 extern crate core;
 
+use alloc::sync::Arc;
 use core::error::Error;
-use std::{env, ffi::OsStr};
 
 use cursive::{
     event::{Event, EventResult},
     views::{LinearLayout, TextView},
     Cursive, Printer,
 };
-use once_cell::sync::Lazy;
 use LocalPlayerType::Human;
 use PlayerType::Local;
 
@@ -50,52 +52,25 @@ use crate::{
         ActionQueue, DefaultActionQueue, LocalPlayerType, Logic, Player, PlayerId, PlayerType,
         State, World,
     },
+    process::ExitSignal,
     ParsedArgs::{Dedicated, Interactive},
 };
 
 mod ai;
 pub mod cli;
 mod game;
+pub mod process;
+mod server;
 mod test;
 mod tui;
 mod util;
 
-// TODO refactor when https://github.com/rust-lang/rust/issues/74465 is done,
-// also remove the once_cell dependency.
-pub static APP_METADATA: Lazy<AppMetadata> = Lazy::new(|| AppMetadata {
-    name: "Tic-tac-toe",
-    version: env!("CARGO_PKG_VERSION"),
-    authors: env!("CARGO_PKG_AUTHORS"),
-    homepage: env!("CARGO_PKG_REPOSITORY"),
-    exe: {
-        let fallback = "<game-executable>";
-        env::current_exe()
-            .as_ref()
-            .map(|path| path.file_name())
-            .map(|name| name.and_then(OsStr::to_str).unwrap_or(fallback))
-            .unwrap_or(fallback)
-            .to_owned()
-    },
-});
-
-pub struct AppMetadata {
-    pub name: &'static str,
-    pub version: &'static str,
-    pub authors: &'static str,
-    pub homepage: &'static str,
-    pub exe: String,
-}
-
 /// # Errors
 ///
 /// When the application must be terminated.
-pub fn run(args: ParsedArgs) -> Result<(), Box<dyn Error>> {
+pub fn run(args: ParsedArgs, exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
     match args {
-        Dedicated { .. } => run_dedicated(args),
-        Interactive => tui::run(),
+        Dedicated { .. } => server::run(args, exit_signal),
+        Interactive => tui::run(exit_signal),
     }
-}
-
-fn run_dedicated(_: ParsedArgs) -> Result<(), Box<dyn Error>> {
-    todo!()
 }

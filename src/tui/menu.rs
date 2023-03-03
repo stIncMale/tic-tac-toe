@@ -13,9 +13,9 @@ use crate::{game::State, tui::util::MenuItemsStateSwitcher};
 pub mod ai_vs_ai;
 
 pub const EXIT_LABEL: &str = "Exit";
-pub const STOP_LABEL: &str = "Stop/disconnect";
+pub const STOP_LABEL: &str = "TODO Stop/disconnect";
 const ROUNDS_GAME_OPTION_VIEW_ID: &str = "ROUNDS_GAME_OPTION_VIEW_ID";
-const ROUNDS_GAME_OPTION_NAME: &str = "Number of rounds";
+const ROUNDS_GAME_OPTION_NAME: &str = "TODO Number of rounds";
 
 pub fn callback<O>(
     (game_opts_dlg_title, game_opts_dlg_content): (impl Into<StyledString>, impl IntoBoxedView),

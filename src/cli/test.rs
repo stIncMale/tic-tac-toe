@@ -21,7 +21,7 @@ mod ParsedArgs {
         &[""],
         &ParsedArgs::Interactive)]
     #[test_case(
-        &["", "--dedicated", "--listen", "[::]:2020"],
+        &["", "--TODO-dedicated", "--TODO-listen", "[::]:2020"],
         &Dedicated {
             listen: "[::]:2020".to_socket_addrs().unwrap().next().unwrap()
         })]
@@ -42,13 +42,13 @@ mod ParsedArgs {
         &["", "--help"],
         ErrorKind::DisplayHelp)]
     #[test_case(
-        &["", "--dedicated", "--listen", "[::]"],
+        &["", "--TODO-dedicated", "--TODO-listen", "[::]"],
         ErrorKind::ValueValidation)]
     #[test_case(
         &["", "--unknown"],
         ErrorKind::UnknownArgument)]
     #[test_case(
-        &["", "--listen", "0.0.0.0:2020"],
+        &["", "--TODO-listen", "0.0.0.0:2020"],
         ErrorKind::MissingRequiredArgument)]
     fn from_iterator__Err(args: &[&str], expected: ErrorKind) {
         assert_eq!(

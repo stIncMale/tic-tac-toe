@@ -29,19 +29,18 @@
 use std::{env, process::ExitCode};
 
 use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
-use tic_tac_toe_lib::{cli::ParsedArgs, run, APP_METADATA};
+use tic_tac_toe_lib::{
+    cli::ParsedArgs,
+    process::{setup_ctrlc_handler, setup_panic, MoreExitCode},
+    run,
+};
 
-/// Exit codes complementing the canonical ones in [`ExitCode`](std::process::ExitCode).
-mod exit_code {
-    pub const INVALID_ARGS: u8 = 2;
-}
-
-// TODO use https://crates.io/crates/crossbeam-channel or https://crates.io/crates/signal-hook, or https://rust-cli.github.io/book/in-depth/signals.html#using-futures-and-streams for async
 fn main() -> ExitCode {
     setup_panic();
+    let exit_signal = setup_ctrlc_handler();
     match ParsedArgs::try_from_iterator(env::args_os()) {
         Ok(parsed_args) => {
-            if let Err(e) = run(parsed_args) {
+            if let Err(e) = run(parsed_args, &exit_signal) {
                 eprint!("{e}");
                 ExitCode::FAILURE
             } else {
@@ -52,18 +51,8 @@ fn main() -> ExitCode {
             e.print().expect("printing an error should not fail");
             match e.kind() {
                 DisplayHelp | DisplayVersion => ExitCode::SUCCESS,
-                _ => ExitCode::from(exit_code::INVALID_ARGS),
+                _ => ExitCode::from(MoreExitCode::INVALID_ARGS),
             }
         }
     }
-}
-
-#[allow(clippy::std_instead_of_core)]
-fn setup_panic() {
-    human_panic::setup_panic!(Metadata {
-        name: APP_METADATA.name.into(),
-        version: APP_METADATA.version.into(),
-        authors: APP_METADATA.authors.into(),
-        homepage: APP_METADATA.homepage.into(),
-    });
 }
