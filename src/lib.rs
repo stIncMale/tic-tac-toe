@@ -68,9 +68,9 @@ mod util;
 /// # Errors
 ///
 /// When the application must be terminated.
-pub fn run(args: ParsedArgs, exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
+pub fn run(args: &ParsedArgs, exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
     match args {
-        Dedicated { .. } => server::run(args, exit_signal),
+        Dedicated(args) => server::run(args, exit_signal),
         Interactive => tui::run(exit_signal),
     }
 }

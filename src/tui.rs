@@ -100,9 +100,9 @@ fn show_about_dlg(tui: &mut Cursive) {
             "{app} {version}.\n\
         \n\
         For more info run `{exe} --help`.",
-            app = APP_METADATA.name,
-            version = APP_METADATA.version,
-            exe = APP_METADATA.exe
+            app = APP_METADATA.name(),
+            version = APP_METADATA.version(),
+            exe = APP_METADATA.exe()
         ))
         .title("About")
         .button("Close", move |tui| {

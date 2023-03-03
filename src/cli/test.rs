@@ -15,16 +15,18 @@ mod ParsedArgs {
     use pretty_assertions_sorted::assert_eq;
     use test_case::test_case;
 
-    use crate::{Dedicated, ParsedArgs};
+    use crate::{cli::DedicatedArgs, Dedicated, ParsedArgs};
 
     #[test_case(
         &[""],
         &ParsedArgs::Interactive)]
     #[test_case(
         &["", "--TODO-dedicated", "--TODO-listen", "[::]:2020"],
-        &Dedicated {
-            listen: "[::]:2020".to_socket_addrs().unwrap().next().unwrap()
-        })]
+        &Dedicated(
+            DedicatedArgs {
+                listen: "[::]:2020".to_socket_addrs().unwrap().next().unwrap()
+            }
+        ))]
     fn from_iterator__Ok(args: &[&str], expected: &ParsedArgs) {
         assert_eq!(ParsedArgs::try_from_iterator(args).unwrap(), *expected);
     }

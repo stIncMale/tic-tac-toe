@@ -30,11 +30,11 @@ fn command() -> Command {
         Homepage:\n    \
             <{homepage}>.",
         crate_description = crate_description!(),
-        homepage = APP_METADATA.homepage
+        homepage = APP_METADATA.homepage()
     );
-    Command::new(APP_METADATA.name)
-        .bin_name(APP_METADATA.exe)
-        .version(APP_METADATA.version)
+    Command::new(APP_METADATA.name())
+        .bin_name(APP_METADATA.exe())
+        .version(APP_METADATA.version())
         .author(concat!("\nAuthors:\n    ", crate_authors!()))
         .about(about)
         .help_template(
@@ -92,7 +92,7 @@ fn command() -> Command {
 #[derive(Debug, Eq, PartialEq)]
 pub enum ParsedArgs {
     Interactive,
-    Dedicated { listen: SocketAddr },
+    Dedicated(DedicatedArgs),
 }
 
 impl ParsedArgs {
@@ -116,9 +116,21 @@ impl ParsedArgs {
                     || panic!("`{LISTEN_ARG_ID}` must be present"),
                     ToOwned::to_owned,
                 );
-            Ok(Dedicated { listen })
+            Ok(Dedicated(DedicatedArgs { listen }))
         } else {
             Ok(Interactive)
         }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct DedicatedArgs {
+    listen: SocketAddr,
+}
+
+impl DedicatedArgs {
+    #[must_use]
+    pub fn _listen(&self) -> SocketAddr {
+        self.listen
     }
 }

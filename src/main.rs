@@ -40,7 +40,7 @@ fn main() -> ExitCode {
     let exit_signal = setup_ctrlc_handler();
     match ParsedArgs::try_from_iterator(env::args_os()) {
         Ok(parsed_args) => {
-            if let Err(e) = run(parsed_args, &exit_signal) {
+            if let Err(e) = run(&parsed_args, &exit_signal) {
                 eprint!("{e}");
                 ExitCode::FAILURE
             } else {

@@ -33,11 +33,38 @@ impl MoreExitCode {
 
 #[derive(Debug)]
 pub struct AppMetadata {
-    pub name: &'static str,
-    pub version: &'static str,
-    pub authors: &'static str,
-    pub homepage: &'static str,
-    pub exe: &'static str,
+    name: &'static str,
+    version: &'static str,
+    authors: &'static str,
+    homepage: &'static str,
+    exe: &'static str,
+}
+
+impl AppMetadata {
+    #[must_use]
+    pub fn name(&self) -> &'static str {
+        self.name
+    }
+
+    #[must_use]
+    pub fn version(&self) -> &'static str {
+        self.version
+    }
+
+    #[must_use]
+    pub fn authors(&self) -> &'static str {
+        self.authors
+    }
+
+    #[must_use]
+    pub fn homepage(&self) -> &'static str {
+        self.homepage
+    }
+
+    #[must_use]
+    pub fn exe(&self) -> &'static str {
+        self.exe
+    }
 }
 
 #[derive(Debug, Default)]
@@ -46,8 +73,7 @@ pub struct ExitSignal {
 }
 
 impl ExitSignal {
-    #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::default()
     }
 
@@ -55,7 +81,7 @@ impl ExitSignal {
         self.received.load(Ordering::SeqCst)
     }
 
-    pub fn mark_received(&self) {
+    fn mark_received(&self) {
         self.received.store(true, Ordering::SeqCst);
     }
 }
