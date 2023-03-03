@@ -23,8 +23,7 @@ mod util;
 mod view;
 
 // TODO use https://crates.io/crates/anyhow?
-// TODO use _exit_signal
-pub fn run(_exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
+pub fn run(exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
     let mut tui = Cursive::new();
     {
         // `Color::Black` works weirdly, using `Color::RgbLowRes` instead
@@ -70,7 +69,7 @@ pub fn run(_exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
                         .leaf("TODO Host", |_| todo!()),
                 )
                 .leaf(menu::STOP_LABEL, |_| todo!())
-                .leaf(menu::EXIT_LABEL, Cursive::quit),
+                .leaf(menu::EXIT_LABEL, exit),
         )
         .add_subtree("Help", Tree::new().leaf("About", show_about_dlg));
     MenuItemsStateSwitcher::new().switch(tui.menubar(), |lbl| {
@@ -81,6 +80,17 @@ pub fn run(_exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
         }
     });
     tui.add_global_callback(Event::Key(Key::Esc), Cursive::select_menubar);
+    {
+        // `cursive` handles the Ctrl+C combination on its own,
+        // but it is not documented, and the corresponding signal (e.g., `SIGINT` in POSIX)
+        // is not handled, so we handle it.
+        let exit_signal = Arc::clone(exit_signal);
+        tui.add_global_callback(Event::Refresh, move |tui| {
+            if exit_signal.is_received() {
+                exit(tui);
+            }
+        });
+    }
     tui.set_autohide_menu(false);
     tui.screen_mut()
         .add_fullscreen_layer(Panel::new(SplashScreenView::new()));
@@ -91,6 +101,10 @@ pub fn run(_exit_signal: &Arc<ExitSignal>) -> Result<(), Box<dyn Error>> {
             cursive::backends::crossterm::Backend::init()?,
         )))
     })
+}
+
+fn exit(tui: &mut Cursive) {
+    tui.quit();
 }
 
 fn show_about_dlg(tui: &mut Cursive) {
